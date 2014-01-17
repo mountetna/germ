@@ -15,7 +15,7 @@ class Oncotator
   end
 
   def self.db_opts
-    @db_opts = YAML.load(File.read(ENV["TAYLORLIB_ONCO_CONFIG"])) if !@db_opts && ENV["TAYLORLIB_ONCO_CONFIG"] && File.exists? ENV["TAYLORLIB_ONCO_CONFIG"]
+    @db_opts = YAML.load(File.read(ENV["TAYLORLIB_ONCO_CONFIG"])) if !@db_opts && ENV["TAYLORLIB_ONCO_CONFIG"] && File.exists?(ENV["TAYLORLIB_ONCO_CONFIG"])
     @db_opts
   end
 
