@@ -14,4 +14,4 @@ cd into taylorlib directory so you can see taylorlib.gemspec
 To include in a Gemfile    
 paste this line into Gemfile:     
 
-`gem 'taylorlib', git:'git@bitbucket.org:lcade/taylorlib.git' `
+`gem 'taylorlib', git:'git@bitbucket.org:taylorlab/taylorlib.git' `
