@@ -32,8 +32,13 @@ class GTF < HashTable
         overlaps = @intervals.select{|f| f.contains? i }
         return cds_pos i if overlaps.find{|f| f.feature == "cds" }
         return intron_pos intron if intron = overlaps.find{|f| f.feature == "intron" }
-        return { :type => :utr } if overlaps.find{|f| f.feature =~ /UTR/ }
+        return utr_pos if overlaps.find{|f| f.feature =~ /UTR/ }
         { :type => :transcript }
+      end
+
+      
+      def utr_pos
+        { :type => :utr }
       end
 
       def intron_frame intron
@@ -153,7 +158,7 @@ class GTF < HashTable
     def site pos
       score = { :cds => 1, :exon => 2, :utr => 3, :intron => 4, :transcript => 5, :igr => 6 }
       sites = @transcripts.map do |t|
-        t.site(pos) if t.contains? pos
+        { :gene => name }.update(t.site pos) if t.contains? pos
       end.compact
       sites.push(:type => :igr)
       sites.sort_by{|s| score[s[:type]] }.first
