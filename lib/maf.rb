@@ -69,6 +69,18 @@ class Maf < MutationSet::Sample
       end
     end
 
+    def is_coding?
+      variant_classification =~ /(Frame_Shift_Del|Frame_Shift_Ins|In_Frame_Del|In_Frame_Ins|Missense_Mutation|Nonsense_Mutation|Splice_Site|Translation_Start_Site)/
+    end
+
+    def gene_name
+      if !hugo_symbol || hugo_symbol.size < 0)
+        onco.txp_gene
+      else
+        hugo_symbol
+      end
+    end
+
     def var_freq
       if !_ref_count.empty? && !_alt_count.empty?
         _ref_count.to_f / (_ref_count.to_i + _alt_count.to_i)
