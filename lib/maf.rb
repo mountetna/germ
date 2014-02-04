@@ -74,7 +74,7 @@ class Maf < MutationSet::Sample
     end
 
     def gene_name
-      if !hugo_symbol || hugo_symbol.size < 0)
+      if !hugo_symbol || hugo_symbol.size == 0
         onco.txp_gene
       else
         hugo_symbol
