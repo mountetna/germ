@@ -176,11 +176,11 @@ class HashTable
     @comment && s =~ @comment
   end
 
+  protected
   def create_line s
     self.class.line_type.new s
   end
 
-  protected
   def add_index line
     @index.each do |key,ind|
       next if !line[key]
