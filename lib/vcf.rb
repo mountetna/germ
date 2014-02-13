@@ -33,7 +33,11 @@ class VCF < MutationSet::Sample
     def initialize(fields, s)
       @sample = s
       @mutation = Hash[clean_required.zip(fields[0...required.size])]
-      @mutation[:info] = Hash[@mutation[:info].split(/;/).map{|s| s.split(/=/).concat([true])[0..1]}]
+      @mutation[:info] = Hash[@mutation[:info].split(/;/).map do |s| 
+        key, value = s.split(/=/)
+        value ||= true
+        [ key.to_sym, value ]
+      end]
       @format = @mutation[:format] = @mutation[:format].split(/:/).map(&:to_sym)
 
       if @sample.samples
