@@ -79,9 +79,13 @@ class Oncotator
     return JSON.parse(json)
   end
 
-  def initialize(mutation)
-    @mutation = mutation
-    @onco = get_json_object
+  def initialize(key)
+    if key.is_a? Hash
+      @onco = key
+    else
+      @mutation = key
+      @onco = get_json_object
+    end
   end
 
   def empty?
