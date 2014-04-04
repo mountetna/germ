@@ -3,6 +3,7 @@ require 'resolv-replace'
 require 'json'
 require 'sequel'
 require 'yaml'
+require 'taylorlib/config'
 
 class Oncotator
   attr_accessor :mutation
@@ -15,8 +16,7 @@ class Oncotator
   end
 
   def self.db_opts
-    @db_opts = YAML.load(File.read(ENV["TAYLORLIB_ONCO_CONFIG"])) if !@db_opts && ENV["TAYLORLIB_ONCO_CONFIG"] && File.exists?(ENV["TAYLORLIB_ONCO_CONFIG"])
-    @db_opts
+    @db_opts ||= TaylorlibConfig.get_conf :oncotator
   end
 
   def self.db_cache
@@ -53,11 +53,15 @@ class Oncotator
     URI "http://69.173.64.101/oncotator/mutation/#{@mutation}/"
   end
 
-  def get_json_object
+  def get_json_object text=nil
     # first look it up in the sequel database.
-    result = Oncotator.find_key @mutation
-    
-    json = result ? result[:RAW_JSON] : nil
+    json = case text
+    when nil
+      result = Oncotator.find_key @mutation
+      result ? result[:RAW_JSON] : nil
+    else
+      text
+    end
     
     begin
       return JSON.parse(json) if json
@@ -79,12 +83,12 @@ class Oncotator
     return JSON.parse(json)
   end
 
-  def initialize(key)
-    if key.is_a? Hash
-      @onco = key
-    else
-      @mutation = key
+  def initialize(opts)
+    if opts[:key]
+      @mutation = opts[:key]
       @onco = get_json_object
+    elsif opts[:text]
+      @onco = get_json_object opts[:text]
     end
   end
 

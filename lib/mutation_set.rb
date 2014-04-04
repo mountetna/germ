@@ -131,7 +131,7 @@ module MutationSet
 
     def onco
       raise ArgumentError, @onco_error unless valid_onco_input?
-      @onco ||= Oncotator.new self.to_ot
+      @onco ||= Oncotator.new :key => self.to_ot
     end
 
     def discard_onco
@@ -196,20 +196,27 @@ module MutationSet
       def read(filename,mutation_config=nil)
         set = new mutation_config, true
 
-        File.foreach(filename) do |l|
-          fields = l.chomp.split(/\t/,-1)
-          if !set.headers
-            if fields.first.downcase == required.first.downcase
-              set.enforce_headers fields
-            else
-              set.preamble_lines.push l
-            end
-            next
-          end
-          set.add_line fields
-        end
+        set.load_file filename
+
         return set
       end
+    end
+
+    def load_file filename
+      File.foreach(filename) do |l|
+        fields = l.chomp.split(/\t/,-1)
+        if !headers
+          if fields.first.downcase == required.first.downcase
+            enforce_headers fields
+          else
+            preamble_lines.push l
+          end
+          next
+        end
+        add_line fields
+      end
+
+      post_read_hook
     end
 
     def preamble
@@ -335,6 +342,10 @@ module MutationSet
       @lines.each do |l|
         yield l
       end
+    end
+
+    protected
+    def post_read_hook
     end
   end
 end
