@@ -6,6 +6,40 @@ class VCF < MutationSet::Sample
   requires "#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"
   comments "##"
 
+  class Preamble
+    def initialize lines
+      @items = {}
+      lines.each do |line|
+        add_key line.chomp
+      end
+    end
+
+    protected
+    def add_key line
+      line.match(/^##(?<key>\w+)=(?<value>.*)$/) do |m|
+        add_key_item m[:key].to_sym, m[:value]
+      end
+    end
+
+    def add_key_item key, value
+      @items[key] ||= []
+      @items[key].push new_item(value)
+    end
+
+    def new_item value
+      case value
+      when /^<(.*)>$/
+        Hash[$1.split(/,/).map{|s| s.split(/=/)}]
+      else
+        value
+      end
+    end
+  end
+
+  def post_read_hook
+    @preamble = VCF::Preamble.new @preamble_lines
+  end
+
   def enforce_headers(array)
     # kludge for empty vcf with no format line
     missing = required.map(&:downcase) - array.map(&:downcase)
@@ -119,6 +153,10 @@ class VCF < MutationSet::Sample
     def ref_freq; ref_count / depth.to_f; end
     def ref_length; @line.ref.length; end
     def alt_length; @line.alt.length; end
+    def alt_base_quality; @info[:NQSBQ] ? @info[:NQSBQ].split(/,/)[0].to_f : nil; end
+    def alt_map_quality; @info[:MQS] ? @info[:MQS].split(/,/)[0].to_f : nil; end
+    def alt_mismatch_rate; @info[:NQSMM] ? @info[:NQSMM].split(/,/)[0].to_f : nil; end
+    def alt_mismatch_count; @info[:MM] ? @info[:MM].split(/,/)[0].to_f : nil; end
     def quality; @info[:GQ].to_i; end
 
     def to_s
