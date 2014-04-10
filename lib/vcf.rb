@@ -36,10 +36,6 @@ class VCF < MutationSet::Sample
     end
   end
 
-  def post_read_hook
-    @preamble = VCF::Preamble.new @preamble_lines
-  end
-
   def enforce_headers(array)
     # kludge for empty vcf with no format line
     missing = required.map(&:downcase) - array.map(&:downcase)
