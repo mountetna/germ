@@ -1,7 +1,7 @@
 To install gem:    
 
 Git clone bitbucket url    
-`git clone git@bitbucket.org:lcade/taylorlib.git`
+`git clone git@bitbucket.org:taylorlab/taylorlib.git`
 
 cd into taylorlib directory so you can see taylorlib.gemspec     
 
