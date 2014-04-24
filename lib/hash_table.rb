@@ -17,6 +17,10 @@ class HashTable
       end
     end
 
+    def update hash
+      @hash.update hash
+    end
+
     def [] ind
       @hash[ind]
     end
