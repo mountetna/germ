@@ -151,6 +151,7 @@ class GTF < HashTable
     def start
       @gene.start
     end
+
     def stop
       @gene.stop
     end
@@ -162,6 +163,19 @@ class GTF < HashTable
       end.compact
       sites.push(:type => :igr)
       sites.sort_by{|s| score[s[:type]] }.first
+    end
+
+    # compute unified intervals from the list of intervals
+    def unified
+      ints = @intervals
+      if block_given?
+        ints = ints.select do |i|
+          yield i
+        end
+      end
+      list = IntervalList.new ints, :type => :flat
+      list.collapse!
+      list.to_a
     end
 
     def inspect
@@ -179,13 +193,15 @@ class GTF < HashTable
 
   def gene name
     intervals = gene_name[name]
-    GTF::Gene.new intervals if intervals
+    @genes[name] ||= GTF::Gene.new intervals if intervals
   end
 
   def initialize file, opts=nil
     opts = { :comment => "#", :sep => " "}.merge(opts || {})
 
     @sep = opts[:sep]
+
+    @genes = {}
 
     super file, :comment => opts[:comment], :idx => opts[:idx],
       :header => [ :seqname, :source, :feature, :start, :stop, :score, :strand, :frame, :attribute ],
