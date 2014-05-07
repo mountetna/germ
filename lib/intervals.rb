@@ -257,6 +257,21 @@ class IntervalList
     track.intersect interval
   end
 
+  # subtract this set of intervals from the given interval_list
+  def diff interval_list
+    interval_list.map do |int|
+      ols = overlap(int)
+      # if there are no overlaps, return int
+      unless ols
+        int
+      else
+        int = ols.each do |ol|
+          int.strict_diff(ol).to_a
+        end.flatten
+      end
+    end
+  end
+
   def initialize array, opts = {}
     @intervals = []
     @ints_chrom = {}

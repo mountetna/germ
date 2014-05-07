@@ -178,6 +178,15 @@ class GTF < HashTable
       list.to_a
     end
 
+    def canonical
+      # find out which transcript has the longest cds
+      @transcripts.max_by do |t|
+        t.cds.inject(0) do |sum,cds|
+          sum += cds.size
+        end
+      end
+    end
+
     def inspect
       "#<#{self.class.name}:#{object_id} @transcripts=#{@transcripts.count}>"
     end
