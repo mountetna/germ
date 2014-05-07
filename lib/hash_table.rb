@@ -125,6 +125,7 @@ class HashTable
 
   def initialize(file,opts={})
     @header = opts[:header]
+    @skip_header = opts[:skip_header] && opts[:header]
     if @header.is_a? Hash
       @types = @header.values
       @header = @header.keys

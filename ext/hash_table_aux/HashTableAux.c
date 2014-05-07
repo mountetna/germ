@@ -186,28 +186,42 @@ VALUE method_load_file(VALUE self, VALUE file) {
 	char *contents = get_file_contents( fp, fp_size );
 
 	VALUE header = rb_iv_get(self,"@header");
+	VALUE skip_header = rb_iv_get(self,"@skip_header");
 	VALUE types = rb_iv_get(self,"@types");
 
 
 	char *buf = ALLOC_N(char,fp_size);
-	int i = 0;
-	char *c;
+	int i = 0, foundheader = 0;
+	char *n;
 	VALUE ary;
 	VALUE lines = rb_ary_new();
 
 	set_convert_types();
-	while(i < fp_size) {
-		c = buf;
-		while(i < fp_size && contents[i] != '\n') *c++ = contents[i++];
-		if (i < fp_size) i++;
-		*c = 0;
-		if (comment && !strncmp(buf,comment,commentsize)) continue;
-		// okay, now you can split your string into tokens and push it onto an
-		// array.
+	while (i < fp_size) {
+		if (!(n = strchr(contents+i, '\n'))) {
+			// there is no line before eof, copy the remainder of the buffer
+			strncpy(buf,contents+i,fp_size - i);
+			buf[fp_size - i] = 0;
+			i = fp_size;
+		} else {
+			strncpy(buf,contents+i,n-(contents+i));
+			buf[n-(contents+i)] = 0;
+			i = n - contents + 1;
+		}
+		if (comment && !strncmp(buf,comment,commentsize)) {
+			continue;
+		}
+		// okay, now you can split your string into tokens and push it
+		// onto an array.
 		ary = get_token_array(buf,"\t");
 		if (header == Qnil) {
 			header = convert_to_symbols(ary);
 			rb_iv_set(self,"@header",header);
+			continue;
+		}
+		if (skip_header != Qnil && !foundheader) {
+			// it expects there to be a header to be ignored
+			foundheader = 1;
 			continue;
 		}
 		add_hash_line( lines, header, types, ary );
