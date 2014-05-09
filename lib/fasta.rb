@@ -68,6 +68,11 @@ class Fasta
   end
 
   def get_seq chrom, start, stop
+    seq = get_masked_seq chrom, start, stop
+    seq && seq.upcase
+  end
+
+  def get_masked_seq chrom, start, stop
     raise ArgumentError.new("Improper interval") if !@chroms[chrom] || !@chroms[chrom].include?([start,stop])
     get_seq_chunk(@chroms[chrom].file_pos(start), @chroms[chrom].file_pos(stop)).gsub(/\n/,'')
   end
