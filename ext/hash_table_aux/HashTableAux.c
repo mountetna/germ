@@ -33,15 +33,17 @@ char *get_file_contents(FILE *fp,long fp_size)
 	return contents;
 }
 
-VALUE get_token_array(char *buf,const char *sep) {
-	char *token;
+VALUE get_token_array(char *buf, char sep) {
+	char *token, *head;
 	VALUE ary = rb_ary_new();
 
-	token = strtok(buf,sep);
-	while( token != NULL )
-	{
-		rb_ary_push(ary, rb_str_new2(token));
-		token = strtok(NULL,sep);
+	head = buf;
+	while( *head && (token = strchr(head,sep) ) ) {
+		rb_ary_push(ary, rb_str_new(head, token - head));
+		head = token + 1;
+	}
+	if (*head) {
+		rb_ary_push(ary, rb_str_new2(head));
 	}
 	return ary;
 }
@@ -95,19 +97,24 @@ char *strip_space_quotes( char *o, int len )
 	return vf;
 }
 
-void make_hash_entry( VALUE h, VALUE s, char *sep )
+void make_hash_entry( VALUE h, VALUE s, char sep )
 {
 	char *p = make_cstr(s);
 	char *kf;
 	VALUE key;
-	char *vs;
+	char *vs = 0;
+	char *split;
 
-	kf = strip_space_quotes(strtok(p,sep), RSTRING_LEN(s));
+	if (split = strchr(p,sep)) {
+		*split = 0;
+		vs = split+1;
+	}
+
+	kf = strip_space_quotes(p, RSTRING_LEN(s));
 	if (!kf) return;
 	key = ID2SYM( rb_intern(kf) );
-	vs = strtok(NULL,sep);
 
-	if (!vs) {
+	if (!vs || !*vs) {
 		rb_hash_aset( h, key, Qnil );
 	} else {
 		char *vf = strip_space_quotes(vs, RSTRING_LEN(s));
@@ -134,9 +141,9 @@ VALUE convert_to_type( VALUE v, VALUE type )
 		char *t2 = make_cstr( rb_ary_entry( type, 1 ) );
 		int i;
 		VALUE h = rb_hash_new();
-		VALUE ary = get_token_array(p,t1);
+		VALUE ary = get_token_array(p,t1[0]);
 		for (i=0;i< RARRAY_LEN(ary); i++) {
-			make_hash_entry( h, rb_ary_entry( ary, i ), t2 );
+			make_hash_entry( h, rb_ary_entry( ary, i ), t2[0] );
 		}
 		xfree(p);
 		xfree(t1);
@@ -213,7 +220,7 @@ VALUE method_load_file(VALUE self, VALUE file) {
 		}
 		// okay, now you can split your string into tokens and push it
 		// onto an array.
-		ary = get_token_array(buf,"\t");
+		ary = get_token_array(buf,'\t');
 		if (header == Qnil) {
 			header = convert_to_symbols(ary);
 			rb_iv_set(self,"@header",header);
