@@ -104,14 +104,19 @@ void make_hash_entry( VALUE h, VALUE s, char sep )
 	VALUE key;
 	char *vs = 0;
 	char *split;
+	char *head = p;
 
-	if (split = strchr(p,sep)) {
+	while (isspace(*head)) head++;
+	if (split = strchr(head,sep)) {
 		*split = 0;
 		vs = split+1;
 	}
 
-	kf = strip_space_quotes(p, RSTRING_LEN(s));
-	if (!kf) return;
+	kf = strip_space_quotes(head, RSTRING_LEN(s));
+	if (!kf) {
+		xfree(p);
+		return;
+	}
 	key = ID2SYM( rb_intern(kf) );
 
 	if (!vs || !*vs) {
