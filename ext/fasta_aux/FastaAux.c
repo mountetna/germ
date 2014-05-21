@@ -24,7 +24,7 @@ void Init_fasta_aux() {
 	rb_define_method(FastaAux, "get_nmer_freq", method_get_nmer_freq, 2);
 }
 
-#define BUF_SIZE 1200
+#define BUF_SIZE 1200 // should be at least large enough to hold a >chr line
 
 VALUE method_get_seq_chunk(VALUE self, VALUE pos1, VALUE pos2) {
 	// extract the sequence between pos1 and pos2
@@ -59,13 +59,20 @@ VALUE method_get_seq_starts(VALUE self) {
 	while (size = fread(buf,1,BUF_SIZE,fd)) { // = getc(fd)) != EOF) {
 		int i = 0;
 		for (i=0;i<size;i++) {
+			if (bptr && buf[i] == '\n') {
+				// you have a dirty fragment from the previous guy, add the rest of this one
+				if (i > 0) memcpy(block+bptr,buf,i);
+				rb_ary_push(arr, rb_str_new(block+1,bptr+i-1));
+				rb_ary_push(pos, UINT2NUM(bytepos+i+1));
+				bptr = 0;
+			}
 			if (buf[i] == '>') {
-				while (++i < size && buf[i] != '\n') {
+				while (i < size && buf[i] != '\n') {
 					// push it onto the existing block
-					block[bptr++] = buf[i];
+					block[bptr++] = buf[i++];
 				}
-				if (buf[i] == '\n') {
-					rb_ary_push(arr, rb_str_new(block,bptr));
+				if (i < size) {
+					rb_ary_push(arr, rb_str_new(block+1,bptr-1));
 					rb_ary_push(pos, UINT2NUM(bytepos+i+1));
 					bptr = 0;
 				}

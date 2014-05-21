@@ -48,7 +48,7 @@ class Fasta
 
 
   public
-  attr_reader :line_size
+  attr_reader :line_size, :chroms
   def initialize file, size=nil
     @io = File.open(file)
 
@@ -64,7 +64,7 @@ class Fasta
   end
 
   def inspect
-    "#<#{self.class.name}:#{object_id} @chroms=#{@seq_names}>"
+    "#<#{self.class.name}:#{object_id} @chroms=#{@seq_names.count}>"
   end
 
   def get_seq chrom, start, stop
