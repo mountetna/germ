@@ -10,11 +10,7 @@ class HashTable
 
   class HashLine
     def initialize h
-      if h.is_a? Array
-        @hash = Hash[h]
-      elsif h.is_a? Hash
-        @hash = h
-      end
+      @hash = Hash[h]
     end
 
     def update hash
@@ -149,6 +145,13 @@ class HashTable
   private
   def parse_file file
     load_file file
+
+    puts "File loaded."
+
+    fix_lines
+  end
+
+  def fix_lines
     @lines.each_index do |i|
       @lines[i] = create_line @lines[i]
       add_index @lines[i] unless @index.empty?
@@ -162,11 +165,6 @@ class HashTable
     end
     idx = [ idx ] if !idx.is_a? Array
     @index = Hash[idx.map{|i| [ i, {} ] }]
-  end
-
-  def set_header s, downcase=nil
-    return nil if @header
-    @header = s.chomp.split(/\t/).map{|s| downcase ? s.downcase.to_sym : s.to_sym }
   end
 
   def format_line l
