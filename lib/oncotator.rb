@@ -16,7 +16,7 @@ class Oncotator
   end
 
   def self.db_opts
-    @db_opts ||= TaylorlibConfig.get_conf :oncotator
+    @db_opts ||= GermConfig.get_conf :oncotator
   end
 
   def self.db_cache
