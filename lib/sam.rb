@@ -1,5 +1,5 @@
-require 'taylorlib/data_types'
-require 'taylorlib/printer'
+require 'germ/data_types'
+require 'germ/printer'
 class Sam
   include Enumerable
   include Printer

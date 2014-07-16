@@ -3,7 +3,7 @@ require 'resolv-replace'
 require 'json'
 require 'sequel'
 require 'yaml'
-require 'taylorlib/config'
+require 'germ/config'
 
 class Oncotator
   attr_accessor :mutation

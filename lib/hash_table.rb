@@ -1,6 +1,6 @@
 require 'zlib'
 require 'extlib'
-require 'taylorlib/printer'
+require 'germ/printer'
 require 'hash_table_aux/hash_table_aux'
 
 class HashTable
