@@ -1,8 +1,8 @@
 require 'yaml'
-class TaylorlibConfig
+class GermConfig
   def self.get_conf *keys
-    config = TaylorlibConfig.new
-    config.get_key *keys if config.loaded?
+    @config ||= GermConfig.new
+    @config.get_key *keys if @config.loaded?
   end
 
   def initialize
@@ -21,7 +21,7 @@ class TaylorlibConfig
 
   private
   def config_file
-    ENV["TAYLORLIB_CONF"]
+    ENV["GERM_CONF"]
   end
 
   def file_exists?
