@@ -11,19 +11,21 @@ class GTF < HashTable
     def copy
       c = self.class.new @hash.clone
     end
+
+    def method_missing sym, *args, &block
+      self[:attribute][sym] || super(sym, *args, &block)
+    end
   end
   line_class GTFLine
 
   class Gene
     class Transcript
-      attr_reader :name, :intervals, :introns
+      attr_reader :name, :intervals, :introns, :transcript
       def initialize array, name
         @intervals = array
         @name = name
 
         @transcript = @intervals.find{|t| t.feature == "transcript"}
-
-        build_introns
       end
 
       def site pos
@@ -74,6 +76,21 @@ class GTF < HashTable
         { :type => :cds, :pos => bases/3 }
       end
 
+      def canonical_transcript_score
+        (is_ccds? ? 100000 : 0) + cds_size
+      end
+
+      def is_ccds?
+        ccds_id != nil
+      end
+
+      def cds_size
+        cds.inject(0) do |sum,reg|
+          sum += reg.size
+        end
+      end
+
+
       def intron_pos intron
         { :type => :intron, :pos => cds_pos(intron.start-1), :frame => intron_frame(intron) }
       end
@@ -119,15 +136,10 @@ class GTF < HashTable
         @intervals.concat @utr5 if @utr5
       end
 
-      def start
-        @transcript.start
+      def method_missing sym, *args, &block
+        @transcript.send sym, *args, &block
       end
-      def stop
-        @transcript.stop
-      end
-      def strand
-        @transcript.strand
-      end
+
       def contains? pos
         start <= pos && stop >= pos
       end
@@ -136,6 +148,9 @@ class GTF < HashTable
       end
       def cds
         @cds ||= @intervals.select{|e| e.feature == "CDS"}.sort_by &:start
+      end
+      def inspect
+        "#<#{self.class}:0x#{'%x' % (object_id << 1)} @name=#{@name} @intervals=#{@intervals.count}>"
       end
     end
 
@@ -180,11 +195,8 @@ class GTF < HashTable
 
     def canonical
       # find out which transcript has the longest cds
-      @transcripts.max_by do |t|
-        t.cds.inject(0) do |sum,cds|
-          sum += cds.size
-        end
-      end
+      canon = @transcripts.max_by &:canonical_transcript_score
+      canon if canon.cds_size
     end
 
     def inspect
