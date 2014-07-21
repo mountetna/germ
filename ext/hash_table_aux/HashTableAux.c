@@ -179,10 +179,15 @@ void add_hash_line(VALUE lines, VALUE header, VALUE types, VALUE ary) {
 	for (i=0;i<RARRAY_LEN(header);i++) {
 		if (types == Qnil)
 			rb_hash_aset( hash, rb_ary_entry(header,i), rb_ary_entry(ary,i) );
-		else
-			rb_hash_aset( hash, rb_ary_entry(header,i), 
-				convert_to_type( rb_ary_entry(ary,i), rb_ary_entry( types, i ) )
-			);
+		else {
+			VALUE col_type = rb_hash_aref( types, rb_ary_entry(header,i) );
+			if (col_type == Qnil)
+				rb_hash_aset( hash, rb_ary_entry(header,i), rb_ary_entry(ary,i) );
+			else 
+				rb_hash_aset( hash, rb_ary_entry(header,i), 
+					convert_to_type( rb_ary_entry(ary,i), col_type )
+				);
+		}
 	}
 	rb_ary_push(lines, hash);
 }

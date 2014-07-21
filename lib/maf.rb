@@ -4,7 +4,7 @@ require 'oncotator'
 require 'yaml'
 require 'mutation_set'
 
-class Maf < MutationSet::Sample
+class Maf < Mutation::Collection
   requires "Hugo_Symbol", "Entrez_Gene_Id", "Center",
     "NCBI_Build", "Chromosome", 
     "Start_Position", "End_Position", "Strand", 
@@ -24,7 +24,7 @@ class Maf < MutationSet::Sample
     "#version 2.2"
   end
 
-  class Line < MutationSet::Line
+  class Line < Mutation::Record
     alias_key :chrom, :chromosome
     alias_key :start, :start_position
     alias_key :stop, :end_position

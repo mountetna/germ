@@ -107,6 +107,7 @@ class HashTable
       next if !l || l.invalid?
       f.puts format_line(l)
     end
+    true
   end
 
   def inspect
@@ -123,7 +124,6 @@ class HashTable
     @header = opts[:header]
     @skip_header = opts[:skip_header] && opts[:header]
     if @header.is_a? Hash
-      @types = @header.values
       @header = @header.keys
     end
     create_index opts[:idx]
@@ -145,8 +145,6 @@ class HashTable
   private
   def parse_file file
     load_file file
-
-    puts "File loaded."
 
     fix_lines
   end

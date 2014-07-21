@@ -2,68 +2,50 @@ require 'oncotator'
 require 'yaml'
 require 'intervals'
 
-module MutationSet
-  class Line
-    include IntervalList::Interval
-    attr_reader :sample
-    attr_accessor :invalid
-
-    def self.alias_key sym1, sym2
-      define_method sym1 do
-        send sym2
-      end
-      define_method "#{sym1}=" do |v|
-        send "#{sym2}=", v
-      end
+class Mutation
+  module Oncotator
+    def onco
+      raise ArgumentError, @onco_error unless valid_onco_input?
+      @onco ||= Oncotator.new :key => to_ot
     end
 
-    def copy
-      self.class.new @mutation.clone, sample
+    def discard_onco
+      @onco = nil
     end
 
-    def invalid?
-      invalid
+    def skip_oncotator? criteria=nil
+      return true if !onco || onco.empty? || criteria_failed?(onco, criteria || :oncotator)
     end
 
-    def invalidate!
-      @invalid = true
+    def inspect
+      "#<#{self.class.name}:#{object_id} @mutation=#{@mutation}>"
     end
 
-
-    def initialize(fields, sample)
-      if fields.is_a? Hash
-        @mutation = fields
-      else
-        @mutation = Hash[sample.clean_headers.zip(fields)]
-      end
-      @sample = sample
+    def in_cosmic
+      onco.Cosmic_overlapping_mutations ? "YES" : "NO"
     end
 
-    def key
-      "#{chrom}:#{start}:#{stop}"
+    def to_ot
+      [ short_chrom, start, stop, ref_allele, alt_allele ].join("_")
     end
 
-    def long_chrom
-      @long_chrom ||= "chr#{short_chrom}"
+    private
+    CHROM_POS=/^[0-9]+$/
+    ALLELE_SEQ=/^([A-Z]+|-)$/
+    def valid_onco_input?
+      @onco_error = []
+      @onco_error.push 'Malformed start position' unless start.to_s =~ MutationSet::Line::CHROM_POS
+      @onco_error.push 'Malformed stop position' unless stop.to_s =~ MutationSet::Line::CHROM_POS
+      @onco_error.push 'Malformed reference allele' unless ref_allele =~ MutationSet::Line::ALLELE_SEQ
+      @onco_error.push 'Malformed alt allele' unless alt_allele =~ MutationSet::Line::ALLELE_SEQ
+      @onco_error.empty?
     end
-
-    def short_chrom
-      @short_chrom ||= chrom.sub(/^chr/,'')
-    end
-
-    def to_s
-      sample.clean_headers.map{ |h| @mutation[h] }.join("\t")
-    end
-
-    def to_hash
-      @mutation
-      #Hash[@mutation.map do |k,v| [ k, v ? v.clone : v ]; end]
-    end
-
+  end
+  module Filtering
     def criteria_failed? obj, name
-      return nil if !sample.mutation_config
+      return nil if !collection.mutation_config
       name = [ name ] if !name.is_a? Array
-      crit = name.reduce(sample.mutation_config) do |h,n|
+      crit = name.reduce(collection.mutation_config) do |h,n|
         h.is_a?(Hash) ? h[n] : nil
       end
       return nil if !crit
@@ -112,10 +94,10 @@ module MutationSet
         end
         return v
       when /^whitelisted/
-        whitelist = sample.whitelist value
+        whitelist = collection.whitelist value
         return whitelist.intersect(self)
       when /^blacklisted/
-        blacklist = sample.blacklist value
+        blacklist = collection.blacklist value
         return !blacklist.intersect(self)
       else
         # send it
@@ -128,30 +110,43 @@ module MutationSet
       end
       true
     end
+  end
+end
 
-    def onco
-      raise ArgumentError, @onco_error unless valid_onco_input?
-      @onco ||= Oncotator.new :key => self.to_ot
+class Mutation
+  class Record < HashLine
+    include IntervalList::Interval
+    attr_reader :collection
+
+    def self.alias_key sym1, sym2
+      define_method sym1 do
+        send sym2
+      end
+      define_method "#{sym1}=" do |v|
+        send "#{sym2}=", v
+      end
     end
 
-    def discard_onco
-      @onco = nil
+    def copy
+      self.class.new @hash.clone, collection
     end
 
-    def skip_oncotator? criteria=nil
-      return true if !onco || onco.empty? || criteria_failed?(onco, criteria || :oncotator)
+    def initialize(fields, collection)
+      @collection = collection
+      super fields
     end
 
-    def inspect
-      "#<#{self.class.name}:#{object_id} @mutation=#{@mutation}>"
+    def key
+      "#{chrom}:#{start}:#{stop}"
     end
 
-    def in_cosmic
-      onco.Cosmic_overlapping_mutations ? "YES" : "NO"
+    def to_s
+      collection.clean_headers.map{ |h| @mutation[h] }.join("\t")
     end
 
-    def to_ot
-      [ short_chrom, start, stop, ref_allele, alt_allele ].join("_")
+    def to_hash
+      @mutation
+      #Hash[@mutation.map do |k,v| [ k, v ? v.clone : v ]; end]
     end
 
     def method_missing(meth,*args,&block)
@@ -165,23 +160,11 @@ module MutationSet
     def respond_to? method
       !@mutation[method.to_sym].nil? || super
     end
-
-    private
-    CHROM_POS=/^[0-9]+$/
-    ALLELE_SEQ=/^([A-Z]+|-)$/
-    def valid_onco_input?
-      @onco_error = []
-      @onco_error.push 'Malformed start position' unless start.to_s =~ MutationSet::Line::CHROM_POS
-      @onco_error.push 'Malformed stop position' unless stop.to_s =~ MutationSet::Line::CHROM_POS
-      @onco_error.push 'Malformed reference allele' unless ref_allele =~ MutationSet::Line::ALLELE_SEQ
-      @onco_error.push 'Malformed alt allele' unless alt_allele =~ MutationSet::Line::ALLELE_SEQ
-      @onco_error.empty?
-    end
   end
 
-  class Sample
+  class Collection
     include Enumerable
-    attr_reader :samples, :mutation_config, :lines, :preamble_lines
+    attr_reader :mutation_config, :lines, :preamble_lines
     attr_accessor :headers
     class << self
       attr_reader :required, :comment
