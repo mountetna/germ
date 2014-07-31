@@ -126,8 +126,8 @@ class GTF
         end
       end
 
-      def cds_seq fasta
-        @cds_seq ||= get_cds_seq fasta
+      def cds_seq
+        @cds_seq ||= get_cds_seq
       end
 
       def cds_pos
@@ -145,30 +145,30 @@ class GTF
         strand == "+" ? pos : pos.reverse
       end
 
-      def get_cds_seq fasta
+      def get_cds_seq
         seq = cds.map do |c|
-          c.seq ||= fasta.locus_seq c
+          c.seq ||= @gtf.fasta.locus_seq c
         end.join ''
         strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
       end
 
       public
-      def protein_seq fasta
-        trinucs(fasta).map do |t|
+      def protein_seq
+        trinucs.map do |t|
           t.codon.aa.letter
         end.join ''
       end
 
-      def protein_seq_at locus, fasta
-        trinucs(fasta).map do |t|
+      def protein_seq_at locus
+        trinucs.map do |t|
           # Just include it if it overlaps the locus
           t.codon.aa.letter if t.pos.any? {|p| p.overlaps? locus}
         end.compact.join ''
       end
 
-      def protein_change mutation, fasta
+      def protein_change mutation
         # replace the positions that overlap the mutation
-        tnucs = trinucs(fasta).select do |tn|
+        tnucs = trinucs.select do |tn|
           tn.pos.any? do |p|
             p.overlaps? mutation
           end
@@ -192,12 +192,8 @@ class GTF
         "#{pre}#{tnucs.first.index+1}#{post}"
       end
 
-      def trinucs fasta
-        @trinucs ||= get_trinucs fasta
-      end
-
-      def get_trinucs fasta
-        trinucs_for cds_seq(fasta), cds_pos
+      def trinucs
+        @trinucs ||= trinucs_for cds_seq, cds_pos
       end
 
       def trinucs_for cds_seq, cds_pos

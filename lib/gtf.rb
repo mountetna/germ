@@ -45,6 +45,10 @@ class GTF < HashTable
     "#<#{self.class}:0x#{'%x' % (object_id << 1)} @lines=#{@lines.count}>"
   end
 
+  def fasta
+    @opts[:fasta] || Fasta.default
+  end
+
   def to_interval_list
     IntervalList.new self
   end
