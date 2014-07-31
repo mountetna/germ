@@ -1,11 +1,13 @@
 require 'hash_table'
 require 'intervals'
+require 'genomic_locus'
+require 'genetic_code'
 
 class GTF < HashTable
   header_off
 
   class GTFLine < HashTable::HashLine
-    include IntervalList::Interval
+    include GenomicLocus
     def chrom; seqname; end
     def chrom= nc; seqname = nc; end
     def copy
@@ -21,9 +23,10 @@ class GTF < HashTable
   class Gene
     class Transcript
       attr_reader :name, :intervals, :introns, :transcript
-      def initialize array, name
+      def initialize array, name, gtf
         @intervals = array
         @name = name
+        @gtf = gtf
 
         @transcript = @intervals.find{|t| t.feature == "transcript"}
       end
@@ -90,6 +93,87 @@ class GTF < HashTable
         end
       end
 
+      def cds_seq fasta
+        @cds_seq ||= get_cds_seq fasta
+      end
+
+      def cds_pos
+        @cds_pos ||= get_cds_pos
+      end
+
+      private
+      def get_cds_pos
+        pos = cds.map do |c|
+          c.size.times.map do |i|
+            GenomicLocus::Position.new c.chrom, i + c.start
+          end
+        end.flatten
+
+        strand == "+" ? pos : pos.reverse
+      end
+
+      def get_cds_seq fasta
+        seq = cds.map do |c|
+          c.seq ||= fasta.locus_seq c
+        end.join ''
+        strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
+      end
+
+      public
+      def protein_seq fasta
+        trinucs(fasta).map do |t|
+          t.codon.aa.letter
+        end.join ''
+      end
+
+      def protein_seq_at locus, fasta
+        trinucs(fasta).map do |t|
+          # Just include it if it overlaps the locus
+          t.codon.aa.letter if t.pos.any? {|p| p.overlaps? locus}
+        end.compact.join ''
+      end
+
+      def protein_change mutation, fasta
+        # replace the positions that overlap the mutation
+        tnucs = trinucs(fasta).select do |tn|
+          tn.pos.any? do |p|
+            p.overlaps? mutation
+          end
+        end
+        return nil if tnucs.empty?
+        muts = tnucs.map do |tn|
+          seq = tn.seq.to_s
+          3.times do |i|
+            next unless mutation.overlaps? tn.pos[i]
+            seq[i] = mutation.alt_at(tn.pos[i])
+            seq[i] = seq[i].tr('ATGC', 'TACG') if strand == "-"
+          end
+          TriNuc.new seq, tn.pos, strand
+        end
+        pre = tnucs.map do |tn|
+          tn.codon.aa.letter
+        end.join ''
+        post = muts.map do |tn|
+          tn.codon.aa.letter
+        end.join ''
+        "#{pre}#{tnucs.first.index+1}#{post}"
+      end
+
+      def trinucs fasta
+        @trinucs ||= get_trinucs fasta
+      end
+
+      def get_trinucs fasta
+        trinucs_for cds_seq(fasta), cds_pos
+      end
+
+      def trinucs_for cds_seq, cds_pos
+        aa_count = cds_seq.size / 3
+        aa_count.times.map do |i|
+          range = 3 * i .. 3*i + 2
+          TriNuc.new cds_seq[range], cds_pos[range], strand, i
+        end
+      end
 
       def intron_pos intron
         { :type => :intron, :pos => cds_pos(intron.start-1), :frame => intron_frame(intron) }
@@ -207,7 +291,7 @@ class GTF < HashTable
     def build_transcripts
       (@intervals.select{|l| l.feature == "transcript"} || []).map do |t|
         name = t.attribute[:transcript_name]
-        Transcript.new @intervals.select{|l| l.attribute[:transcript_name] == name}, name
+        Transcript.new @intervals.select{|l| l.attribute[:transcript_name] == name}, name, @gtf
       end
     end
   end
@@ -226,7 +310,8 @@ class GTF < HashTable
 
     super file, :comment => opts[:comment], :idx => opts[:idx],
       :header => [ :seqname, :source, :feature, :start, :stop, :score, :strand, :frame, :attribute ],
-      :types => [ :str, :str, :str, :int, :int, :int, :str, :int, [ ";", @sep ] ]
+      :types => { :start => :int, :stop => :int, :score => :int, :frame =>
+                  :int, :attribute => [ ";", @sep ] }
   end
 
   def inspect
