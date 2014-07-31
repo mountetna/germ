@@ -121,15 +121,11 @@ class HashTable
   end
 
   def initialize(file,opts={})
-    @header = opts[:header]
-    @skip_header = opts[:skip_header] && opts[:header]
-    if @header.is_a? Hash
-      @header = @header.keys
-    end
-    create_index opts[:idx]
+    @opts = opts
+    create_header
+    create_index
     @lines = []
-    @comment = opts[:comment]
-    @types ||= opts[:types]
+    @comment = @opts[:comment]
 
     parse_file(file) if file && File.exists?(file)
   end
@@ -143,6 +139,33 @@ class HashTable
   end
 
   private
+  def create_header
+    validate_header
+
+    validate_types
+  end
+
+  def validate_header
+    @header = @opts[:header]
+    if @header.is_a? Hash
+      @opts[:types] = @header
+      @header = @header.keys
+    end
+    @skip_header = @opts[:skip_header] && @opts[:header]
+  end
+
+  def validate_types
+    @types ||= @opts[:types]
+
+    raise TypeError, "Types must be a Hash!" unless !@types || @types.is_a?(Hash)
+    types.each do |key,type|
+      case type
+      when Array
+        raise ArgumentError unless type.length == 2 && type.all?{|n| n.is_a? String}
+      end
+    end
+  end
+
   def parse_file file
     load_file file
 
@@ -156,7 +179,8 @@ class HashTable
     end
   end
 
-  def create_index idx
+  def create_index
+    idx = @opts[:idx]
     if !idx
       @index = {}
       return
