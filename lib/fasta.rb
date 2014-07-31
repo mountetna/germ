@@ -62,23 +62,19 @@ class Fasta
   end
 
   class Chrom
-    attr_reader :name, :size, :start
+    include GenomicLocus
+    attr_reader :name, :size
+    def start 1; end
+    alias_method :chrom, :name
+    alias_method :pos, :start
+    alias_method :stop, :size
     def initialize n, fasta, sz, st
-      @name, @fasta, @size, @start = n, fasta, sz, st
-    end
-
-    def include? pos
-      if pos.is_a? Array
-        start,stop = pos.to_a
-        include?(start) && include?(stop)
-      else
-        pos.is_a?(Fixnum) && pos >= 1 && pos <= size
-      end
+      @name, @fasta, @size, @byte_start = n, fasta, sz, st
     end
 
     def file_pos pos
-      return nil if !include? pos
-      start + pos/line_size*(line_size+1) + (pos % line_size) - 1 - ((pos % line_size == 0) ? 1 : 0)
+      return nil if !contains? pos
+      byte_start + pos/line_size*(line_size+1) + (pos % line_size) - 1 - ((pos % line_size == 0) ? 1 : 0)
     end
 
     private
@@ -95,13 +91,15 @@ class Fasta
     @chroms = {}
     @seq_names.each_with_index do |name, i|
       if i < @seq_names.size-1
-        @chroms[name] = Fasta::Chrom.new name, self, seq_size_from_byte_size(@seq_starts[i+1] - @seq_starts[i] - @seq_names[i+1].size - 3), @seq_starts[i]
+        size = seq_size_from_byte_size(@seq_starts[i+1] - @seq_starts[i] - @seq_names[i+1].size - 3)
       else
-        @chroms[name] = Fasta::Chrom.new name, self, seq_size_from_byte_size(@io.size - @seq_starts[i]), @seq_starts[i]
+        size = seq_size_from_byte_size(@io.size - @seq_starts[i])
       end
+      @chroms[name] = Fasta::Chrom.new name, self, size, @seq_starts[i]
+      # just save it as both
+      @chroms[ @chroms[name].short_chrom ] = @chroms[name]
     end
   end
-
 
   public
   attr_reader :line_size, :chroms
@@ -123,13 +121,23 @@ class Fasta
     "#<#{self.class.name}:#{object_id} @chroms=#{@seq_names.count}>"
   end
 
+  def locus_seq locus
+    raise TypeError, "not a GenomicLocus!" unless locus.is_a? GenomicLocus
+    get_seq locus.short_chrom, locus.start, locus.stop
+  end
+
   def get_seq chrom, start, stop
     seq = get_masked_seq chrom, start, stop
     seq && seq.upcase
   end
 
+  def interval_missing?(chrom,start,stop)
+    !@chroms[chrom] || !@chroms[chrom].contains?([start,stop])
+  end
+
   def get_masked_seq chrom, start, stop
-    raise ArgumentError.new("Improper interval") if !@chroms[chrom] || !@chroms[chrom].include?([start,stop])
+    raise ArgumentError, "Improper interval #{chrom}:#{start}-#{stop}" if interval_missing?(chrom,start,stop)
+
     get_seq_chunk(@chroms[chrom].file_pos(start), @chroms[chrom].file_pos(stop)).gsub(/\n/,'')
   end
 end
