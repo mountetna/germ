@@ -9,8 +9,9 @@ class HashTable
   include HashTableAux
 
   class HashLine
-    def initialize h
+    def initialize h, table
       @hash = Hash[h]
+      @table = table
     end
 
     def update hash
@@ -158,7 +159,10 @@ class HashTable
     @types ||= @opts[:types]
 
     raise TypeError, "Types must be a Hash!" unless !@types || @types.is_a?(Hash)
-    types.each do |key,type|
+
+    return if !@types
+
+    @types.each do |key,type|
       case type
       when Array
         raise ArgumentError unless type.length == 2 && type.all?{|n| n.is_a? String}
@@ -203,7 +207,7 @@ class HashTable
 
   protected
   def create_line s
-    self.class.line_type.new s
+    self.class.line_type.new s, self
   end
 
   def add_index line
