@@ -63,13 +63,13 @@ class Fasta
 
   class Chrom
     include GenomicLocus
-    attr_reader :name, :size
-    def start 1; end
+    attr_reader :name, :size, :start
     alias_method :chrom, :name
     alias_method :pos, :start
     alias_method :stop, :size
     def initialize n, fasta, sz, st
       @name, @fasta, @size, @byte_start = n, fasta, sz, st
+      @start = 1
     end
 
     def file_pos pos
