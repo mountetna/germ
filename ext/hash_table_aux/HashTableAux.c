@@ -120,11 +120,11 @@ void make_hash_entry( VALUE h, VALUE s, char sep )
 	key = ID2SYM( rb_intern(kf) );
 
 	if (!vs || !*vs) {
-		rb_hash_aset( h, key, Qnil );
+		rb_hash_aset( h, key, Qtrue );
 	} else {
 		char *vf = strip_space_quotes(vs, RSTRING_LEN(s));
 		if (!vf)
-			rb_hash_aset( h, key, Qnil );
+			rb_hash_aset( h, key, Qtrue );
 		else {
 			rb_hash_aset( h, key, rb_str_new2(vf) );
 			xfree(vf);
@@ -195,6 +195,7 @@ void add_hash_line(VALUE lines, VALUE header, VALUE types, VALUE ary) {
 
 VALUE method_load_file(VALUE self, VALUE file) {
 	VALUE cmmt = rb_iv_get(self,"@comment");
+	VALUE preamble = rb_iv_get(self,"@preamble");
 	char *comment = (cmmt == Qnil) ? 0 : RSTRING_PTR(cmmt);
 	int commentsize = (cmmt == Qnil) ? 0 : (RSTRING_LEN(cmmt));
 
@@ -226,6 +227,8 @@ VALUE method_load_file(VALUE self, VALUE file) {
 			i = n - contents + 1;
 		}
 		if (comment && !strncmp(buf,comment,commentsize)) {
+			// if you haven't found the header yet, stick it on the preamble
+			if (!foundheader) rb_ary_push(preamble, rb_str_new2(buf));
 			continue;
 		}
 		// okay, now you can split your string into tokens and push it
@@ -234,6 +237,11 @@ VALUE method_load_file(VALUE self, VALUE file) {
 		if (header == Qnil) {
 			header = convert_to_symbols(ary);
 			rb_iv_set(self,"@header",header);
+			// enforce header quality
+			rb_funcall(self, rb_intern("enforce_header"),0);
+			// enforce_header might reset your header, so get it again
+			header = rb_iv_get(self,"@header");
+			foundheader = 1;
 			continue;
 		}
 		if (skip_header != Qnil && !foundheader) {

@@ -9,6 +9,15 @@ class HashTable
   include HashTableAux
 
   class HashLine
+    def self.alias_key sym1, sym2
+      define_method sym1 do
+        send sym2
+      end
+      define_method "#{sym1}=" do |v|
+        send "#{sym2}=", v
+      end
+    end
+
     def initialize h, table
       @hash = Hash[h]
       @table = table
@@ -44,12 +53,34 @@ class HashTable
       elsif sym.to_s =~ /(.*)=/ 
         @hash[$1.to_sym] = args.first
       else
-        nil
+        super sym, *args, &block
+      end
+    end
+
+    def to_s
+      @table.header.map do |h| 
+        format_column h
+      end.join("\t")
+    end
+
+    def format_column column
+      if send(column).is_a?(Hash) && @table.types[column].is_a?(Array)
+        send(column).map do |key,value|
+          if value == true
+            # just print the key
+            key
+          else
+            "#{key}#{@table.types[column][1]}#{value}"
+          end
+        end.join @table.types[column][0]
+      else
+        send(column)
       end
     end
   end
 
   class << self
+    attr_reader :comment
     def line_type
       @line_type || HashLine
     end
@@ -70,9 +101,13 @@ class HashTable
   end
   header_on
 
-  attr_accessor :header
+  attr_accessor :header, :types
   def [](ind)
-    @lines[ind]
+    if ind.is_a? Range
+      derived_ht @lines[ind]
+    else
+      @lines[ind]
+    end
   end
 
   def method_missing sym, *args, &block
@@ -89,24 +124,43 @@ class HashTable
     end
   end
 
+  [ :select, :reject, :sort, :sort_by ].each do |meth|
+    define_method(meth) do |&block|
+      derived_ht @lines.send(meth, &block)
+    end
+  end
+
   def select! &block
     @lines.select! &block
+    self
   end
 
   def sort_by! &block
     @lines.sort_by! &block
+    self
   end
 
   def use_header?
     self.class.use_header?
   end
 
+  def formatted_header
+    @header.map do |h|
+      @sleeve[h] || h
+    end.join("\t")
+  end
+
+  def preamble
+    @preamble
+  end
+
   def output f
-    f.puts @header.join("\t") if use_header?
+    f.puts preamble
+    f.puts formatted_header if use_header?
     @lines.each do |l|
       l = yield l if block_given?
       next if !l || l.invalid?
-      f.puts format_line(l)
+      f.puts l.to_s
     end
     true
   end
@@ -121,29 +175,45 @@ class HashTable
     end
   end
 
-  def initialize(file,opts={})
+  def initialize(obj=nil,opts={})
     @opts = opts
     create_header
     create_index
     @lines = []
-    @comment = @opts[:comment]
+    @preamble = []
+    @sleeve = {}
+    @comment = @opts[:comment] || self.class.comment
 
-    parse_file(file) if file && File.exists?(file)
+    if obj && obj.is_a?(String) && File.exists?(obj)
+      parse_file obj
+    elsif obj && obj.is_a?(Array)
+      # it's a stack of lines. Go with it.
+      @lines = obj
+    end
   end
 
+  def << hash
+    add_line hash
+  end
+
+  protected
   def add_line hash
     if hash.is_a? HashLine
       @lines.push hash
     else
       @lines.push create_line(hash)
     end
+    add_index @lines.last
   end
 
-  private
   def create_header
     validate_header
 
     validate_types
+  end
+
+  def derived_ht lines
+    self.class.new lines, @opts.merge( :header => @header.clone, :types => @types.clone )
   end
 
   def validate_header
@@ -152,7 +222,10 @@ class HashTable
       @opts[:types] = @header
       @header = @header.keys
     end
-    @skip_header = @opts[:skip_header] && @opts[:header]
+    @skip_header = @opts[:skip_header] && @header
+  end
+
+  def enforce_header
   end
 
   def validate_types
@@ -179,7 +252,7 @@ class HashTable
   def fix_lines
     @lines.each_index do |i|
       @lines[i] = create_line @lines[i]
-      add_index @lines[i] unless @index.empty?
+      add_index @lines[i]
     end
   end
 
@@ -193,18 +266,6 @@ class HashTable
     @index = Hash[idx.map{|i| [ i, {} ] }]
   end
 
-  def format_line l
-    @header.map{|h| l[h]}.join("\t")
-  end
-
-  def line_hash s
-    @header.zip(s.split(/\t/))
-  end
-
-  def is_comment? s
-    @comment && s =~ @comment
-  end
-
   protected
   def create_line s
     self.class.line_type.new s, self
@@ -212,8 +273,9 @@ class HashTable
 
   def add_index line
     @index.each do |key,ind|
-      next if !line[key]
-      (ind[ line[key] ] ||= []) << line
+      next if !line.send(key)
+      (ind[ line.send(key) ] ||= []) << line
     end
+    line
   end
 end
