@@ -53,18 +53,6 @@ class GTF < HashTable
     IntervalList.new self
   end
 
-  def format_line g
-    [ :seqname, :source, :feature, :start, :stop, :score, :strand, :frame, :attribute ].map do |h|
-      if h == :attribute
-        g[:attribute].map do |k,v| 
-          "#{k}#{@sep}#{v}" 
-        end.join("; ")
-      else
-        g[h]
-      end
-    end.join("\t")
-  end
-
   protected
   def add_index line
     @index.each do |key,ind|
