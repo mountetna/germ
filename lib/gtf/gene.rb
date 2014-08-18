@@ -1,4 +1,4 @@
-class GTF
+class GTF < HashTable
   class Gene
     attr_reader :name, :strand, :transcripts, :intervals
     def initialize array
