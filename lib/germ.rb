@@ -1,4 +1,5 @@
 require 'fasta'
+require 'fastq'
 require 'gtf'
 require 'hash_table'
 require 'indelocator'
