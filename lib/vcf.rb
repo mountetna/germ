@@ -1,10 +1,13 @@
 require 'mutation_set'
-require 'oncotator'
 require 'yaml'
 
-class VCF < MutationSet::Sample
-  requires "#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"
+class VCF < Mutation::Collection
+  header_on
+  requires :chrom => :str, :pos => :int, :id => :str, :ref => :str, 
+    :alt => :str, :qual => :str, :filter => :str, :info => [ ";", "=" ]
+  might_have :format => :str
   comments "##"
+  attr_reader :samples
 
   class Preamble
     def initialize lines
@@ -36,47 +39,43 @@ class VCF < MutationSet::Sample
     end
   end
 
-  def enforce_headers(array)
+  def enforce_header
     # kludge for empty vcf with no format line
-    missing = required.map(&:downcase) - array.map(&:downcase)
-    raise "VCF lacks required headers" if !missing.empty? && !(missing.first == "format" && missing.size == 1)
+    super
 
-    if array.size > required.size
-      @samples = array - required
+    if header.size > required.size
+      @samples = @header - required - [ :format ]
+      # recover the original sample name from the sleeve
+      new_samples = @samples.map do |s|
+        @sleeve[s].to_sym
+      end
+      @header = @header - @samples + new_samples
+      @samples = new_samples
     end
-
-    @headers = array.map &:to_sym
   end
 
-  class Line < MutationSet::Line
-    attr_reader :format, :mutation
-    alias_key :start, :pos
-    alias_key :ref_allele, :ref
-    def alt_allele; pick_alt; end
-    def stop; @stop || end_pos; end
-    def stop= nc; @stop = nc; end
+  class Line < Mutation::Record
+    def initialize(h, s)
+      super h, s
 
-    def required
-      sample.required
+      self.format = self.format.split(/:/).map{|f| f.to_sym} if self.format
+
+      build_genotypes
+      build_muts
     end
 
-    def initialize(fields, s)
-      @sample = s
-      @mutation = Hash[clean_required.zip(fields[0...required.size])]
-      @mutation[:info] = Hash[@mutation[:info].split(/;/).map do |s| 
-        key, value = s.split(/=/)
-        value ||= true
-        [ key.to_sym, value ]
-      end]
-      @format = @mutation[:format] = @mutation[:format].split(/:/).map(&:to_sym)
-
-      if @sample.samples
-        sample_fields = fields[required.size..-1]
-        @genotypes = {}
-        @sample.samples.each_with_index do |s,i|
-          next if !sample_fields[i]
-          @genotypes[s] = VCF::Genotype.new self, sample_fields[i].split(/:/)
+    def build_genotypes
+      @genotypes = {}
+      if @table.samples
+        @table.samples.each do |s|
+          @genotypes[s] = VCF::Genotype.new self, self.send(s)
         end
+      end
+    end
+
+    def build_muts
+      @table.samples.each do |s|
+        @muts.push Mutation.new(chrom, pos, ref, alt, genotype(s).ref_count, genotype(s).alt_count)
       end
     end
 
@@ -91,72 +90,74 @@ class VCF < MutationSet::Sample
       alt.split(/,/).first
     end
 
-    def end_pos
-      pos.to_i + ref.length-1
-    end
-
-    def to_s
-      clean_required.map{ |h|
-        case h
-        when :info
-        mutation[h].map{|k,v|  "#{k}=#{v}" }.join(";")
-        when :format
-        mutation[h].join(":")
-        else
-        mutation[h]
-        end
-      }.join("\t") + "\t" + sample.samples.map{|s| genotype(s).to_s }.join("\t")
+    def format_column column
+      if column == :format
+        self.format.join(":")
+      elsif genotype(column)
+        genotype(column).to_s
+      else
+        super(column)
+      end
     end
 
     def genotype(s)
       @genotypes[s] if @genotypes
     end
-
-    def clean_required
-      sample.clean_headers[0...required.size]
-    end
   end
+  line_class VCF::Line
 
   class Genotype
-    attr_reader :info
     def initialize(line,field)
       @line = line
-      @info = Hash[line.format.zip(field)]
+      @hash = Hash[line.format.map(&:downcase).zip(field.split /:/)]
+    end
+
+    def method_missing sym, *args, &block
+      if @hash[sym]
+        @hash[sym]
+      elsif sym.to_s =~ /(.*)=/ 
+        @hash[$1.to_sym] = args.first
+      else
+        super sym, *args, &block
+      end
+    end
+
+    def respond_to? sym
+      @hash[sym] || super(sym)
     end
 
     def homozygous?
-      @info[:GT] =~ /0.0/ || @info[:GT] =~ /1.1/
+      gt =~ /0.0/ || gt =~ /1.1/
     end
 
     def heterozygous?
-      @info[:GT] =~ /0.1/ || @info[:GT] =~ /1.0/
+      gt =~ /0.1/ || gt =~ /1.0/
     end
 
     def empty?
-      @info[:GT] =~ /\..\./
+      gt =~ /\..\./
     end
 
     def callable?
-      @info[:GT] !~ /\..\./
+      gt !~ /\..\./
     end
 
-    def gt; @info[:GT]; end
-    def approx_depth; @info[:DP].to_i; end
+    def approx_depth; dp.to_i; end
     def depth; alt_count + ref_count; end
-    def alt_count; @info[:AD] ? @info[:AD].split(/,/)[1].to_i : nil; end
-    def ref_count; @info[:AD] ? @info[:AD].split(/,/)[0].to_i : nil; end
+    def alt_count; @alt_count ||= respond_to?(:ad) ? ad.split(/,/)[1].to_i : nil; end
+    def ref_count; @ref_count ||= respond_to?(:ad) ? ad.split(/,/)[0].to_i : nil; end
     def alt_freq; alt_count / depth.to_f; end
     def ref_freq; ref_count / depth.to_f; end
     def ref_length; @line.ref.length; end
     def alt_length; @line.alt.length; end
-    def alt_base_quality; @info[:NQSBQ] ? @info[:NQSBQ].split(/,/)[0].to_f : nil; end
-    def alt_map_quality; @info[:MQS] ? @info[:MQS].split(/,/)[0].to_f : nil; end
-    def alt_mismatch_rate; @info[:NQSMM] ? @info[:NQSMM].split(/,/)[0].to_f : nil; end
-    def alt_mismatch_count; @info[:MM] ? @info[:MM].split(/,/)[0].to_f : nil; end
-    def quality; @info[:GQ].to_i; end
+    def alt_base_quality; respond_to?(:nqsbq) ? nqsbq.split(/,/)[0].to_f : nil; end
+    def alt_map_quality; respond_to?(:mqs) ? mqs.split(/,/)[0].to_f : nil; end
+    def alt_mismatch_rate; respond_to?(:nqsmm) ? nqsmm.split(/,/)[0].to_f : nil; end
+    def alt_mismatch_count; respond_to?(:mm) ? mm.split(/,/)[0].to_f : nil; end
+    def quality; gq.to_i; end
 
     def to_s
-      @line.format.map{|f| @info[f]}.join(":")
+      @line.format.map(&:downcase).map{|f| @hash[f]}.join(":")
     end
   end
 end

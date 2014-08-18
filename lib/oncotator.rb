@@ -142,3 +142,44 @@ class Oncotator
     end
   end
 end
+class Mutation
+  module Oncotate
+    def onco
+      raise ArgumentError, @onco_error unless valid_onco_input?
+      @onco ||= Oncotator.new :key => to_ot
+    end
+
+    def discard_onco
+      @onco = nil
+    end
+
+    def skip_oncotator? criteria=nil
+      return true if !onco || onco.empty? || criteria_failed?(onco, criteria || :oncotator)
+    end
+
+    def inspect
+      "#<#{self.class.name}:#{object_id} @mutation=#{@mutation}>"
+    end
+
+    def in_cosmic
+      onco.Cosmic_overlapping_mutations ? "YES" : "NO"
+    end
+
+    def to_ot
+      [ short_chrom, start, stop, ref, alt ].join("_")
+    end
+
+    private
+    CHROM_POS=/^[0-9]+$/
+    ALLELE_SEQ=/^([A-Z]+|-)$/
+    def valid_onco_input?
+      @onco_error = []
+      #@onco_error.push 'Malformed start position' unless start.to_s =~ Mutation::Oncotate::CHROM_POS
+      #@onco_error.push 'Malformed stop position' unless stop.to_s =~ Mutation::Oncotate::CHROM_POS
+      @onco_error.push 'Malformed reference allele' unless ref =~ Mutation::Oncotate::ALLELE_SEQ
+      @onco_error.push 'Malformed alt allele' unless alt =~ Mutation::Oncotate::ALLELE_SEQ
+      @onco_error.empty?
+    end
+  end
+  include Oncotate
+end

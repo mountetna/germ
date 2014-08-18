@@ -1,38 +1,28 @@
+require 'genomic_locus'
 class Mutation
   include GenomicLocus
-
   # This is a generic description of a mutation.
   VALID_ALLELE = /^[ATGCNatgcn]+$/
-  class << self
-    def fix_invalid chrom, pos, ref, alt, genome
-      if ref =~ VALID_ALLELE && pos =~ VALID_ALLELE
-        return new(chrom,pos,ref,alt)
-      end
-      # At least one is invalid. Add a flanking base
-    end
-  end
 
-  attr_reader :chrom, :pos, :ref, :alt
-  def initialize chrom, pos, ref, alt
+  attr_reader :chrom, :pos, :ref, :alt, :ref_count, :alt_count
+  def initialize chrom, pos, ref, alt, ref_count=nil, alt_count=nil
     raise "Alleles must not be empty." if ref !~ VALID_ALLELE || alt !~ VALID_ALLELE
-    @chrom, @pos, @ref, @alt = chrom, pos, ref, alt
+    @chrom, @pos, @ref, @alt, @ref_count, @alt_count = chrom, pos, ref, alt, ref_count, alt_count
   end
 
   def ref_at loc
     return nil unless contains? loc
-    ref[@pos - loc.pos]
+    ref[pos - loc.pos]
+  end
+
+  def var_freq
+    if ref_count && alt_count
+      ref_count / alt_count
+    end
   end
 
   def alt_at loc
     return nil unless contains? loc
-    alt[@pos - loc.pos]
-  end
-
-  def start
-    @pos
-  end
-
-  def stop
-    @pos + ref.size - 1
+    alt[pos - loc.pos]
   end
 end

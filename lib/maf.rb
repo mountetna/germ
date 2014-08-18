@@ -1,23 +1,28 @@
 #!/usr/bin/env ruby
 
-require 'oncotator'
 require 'yaml'
 require 'mutation_set'
 
 class Maf < Mutation::Collection
-  requires "Hugo_Symbol", "Entrez_Gene_Id", "Center",
-    "NCBI_Build", "Chromosome", 
-    "Start_Position", "End_Position", "Strand", 
-    "Variant_Classification", "Variant_Type", 
-    "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", 
-    "dbSNP_RS", "dbSNP_Val_Status", 
-    "Tumor_Sample_Barcode", "Matched_Norm_Sample_Barcode", 
-    "Match_Norm_Seq_Allele1", "Match_Norm_Seq_Allele2", 
-    "Tumor_Validation_Allele1", "Tumor_Validation_Allele2", 
-    "Match_Norm_Validation_Allele1", "Match_Norm_Validation_Allele2", 
-    "verification_Status", "Validation_Status", 
-    "Mutation_Status", "Sequencing_Phase", "Sequence_Source", 
-    "Validation_Method", "Score" #, "BAM_File", "Sequencer"
+  header_on
+  requires :hugo_symbol => :str, :entrez_gene_id => :str, :center => :str,
+    :ncbi_build => :str, :chromosome => :str,
+    :start_position => :int, :end_position => :int, :strand => :str,
+    :variant_classification => :str, :variant_type => :str,
+    :reference_allele => :str, :tumor_seq_allele1 => :str, :tumor_seq_allele2 => :str,
+    :dbsnp_rs => :str, :dbsnp_val_status => :str,
+    :tumor_sample_barcode => :str, :matched_norm_sample_barcode => :str,
+    :match_norm_seq_allele1 => :str, :match_norm_seq_allele2 => :str,
+    :tumor_validation_allele1 => :str, :tumor_validation_allele2 => :str,
+    :match_norm_validation_allele1 => :str, :match_norm_validation_allele2 => :str,
+    :verification_status => :str, :validation_status => :str,
+    :mutation_status => :str, :sequencing_phase => :str, :sequence_source => :str,
+    :validation_method => :str, :score => :str
+  might_have :tumor_var_freq => :float, 
+    :tumor_ref_count => :int, :t_ref_count => :int, 
+    :normal_ref_count => :int, :n_ref_count => :int,
+    :tumor_alt_count => :int, :t_alt_count => :int, 
+    :normal_alt_count => :int, :n_alt_count => :int
   comments "#"
 
   def preamble
@@ -26,51 +31,31 @@ class Maf < Mutation::Collection
 
   class Line < Mutation::Record
     alias_key :chrom, :chromosome
-    alias_key :start, :start_position
-    alias_key :stop, :end_position
-    alias_key :ref_allele, :reference_allele
-
-    def skip_maf?
-      criteria_failed?(self, :maf)
-    end
-
-    def key
-      [ tumor_sample_barcode, chrom, start, stop ].join(":")
-    end
-
-    def alt_allele
+    alias_key :pos, :start_position
+    alias_key :ref, :reference_allele
+    def alt
       tumor_seq_allele1 == reference_allele ? tumor_seq_allele2 : tumor_seq_allele1
     end
 
-    def _ref_count
-      [ :t_ref_count, :tumor_ref_count, :ref_count ].each do |s|
-        if respond_to? s
-          return send(s)
-        end
-      end
-      nil
+    def initialize h, table
+      super h, table
+      @muts.push Mutation.new(chrom, pos, ref, alt, ref_count, alt_count)
     end
 
-    def _alt_count
-      [ :t_alt_count, :tumor_alt_count, :alt_count ].each do |s|
-        if respond_to? s
-          return send(s)
+    def method_missing sym, *args, &block
+      if sym == :ref_count
+        [ :t_ref_count, :tumor_ref_count ].each do |s|
+          return send(s) if respond_to? s
         end
-      end
-      nil
-    end
-
-    def chrom_name
-      # properly format the name
-      if chromosome =~ /chr/
-        chromosome
+        nil
+      elsif sym == :alt_count
+        [ :t_alt_count, :tumor_alt_count ].each do |s|
+          return send(s) if respond_to? s
+        end
+        nil
       else
-        "chr#{chromosome}"
+        super sym, *args, &block
       end
-    end
-
-    def is_coding?
-      variant_classification =~ /(Frame_Shift_Del|Frame_Shift_Ins|In_Frame_Del|In_Frame_Ins|Missense_Mutation|Nonsense_Mutation|Splice_Site|Translation_Start_Site)/
     end
 
     def gene_name
@@ -80,13 +65,6 @@ class Maf < Mutation::Collection
         hugo_symbol
       end
     end
-
-    def var_freq
-      if !_ref_count.empty? && !_alt_count.empty?
-        _ref_count.to_f / (_ref_count.to_i + _alt_count.to_i)
-      else
-        nil
-      end
-    end
   end
+  line_class Maf::Line
 end
