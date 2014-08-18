@@ -40,4 +40,17 @@ module GenomicLocus
   def short_chrom
     @short_chrom ||= chrom.sub(/^chr/,'')
   end
+
+  def method_missing sym, *args, &block
+    # provide pos, start, stop if those don't exist
+    if sym == :pos && respond_to?(:start)
+      start
+    elsif sym == :start && respond_to?(:pos)
+      pos
+    elsif sym == :stop && respond_to?(:ref)
+      start + ref.size - 1
+    else
+      super sym, *args, &block
+    end
+  end
 end
