@@ -13,7 +13,7 @@ class GTF < HashTable
     def chrom; seqname; end
     def chrom= nc; seqname = nc; end
     def copy
-      c = self.class.new @hash.clone
+      self.class.new @hash.clone, @table
     end
 
     def method_missing sym, *args, &block

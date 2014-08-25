@@ -256,6 +256,9 @@ class GTF < HashTable
       def contains? pos
         start <= pos && stop >= pos
       end
+      def transcript_start
+        @transcript_start ||= @transcript.clone( :pos => (strand == "+" ? start : stop) )
+      end
       def exons
         @exons ||= @intervals.select{|e| e.feature == "exon"}.sort_by &:start
       end
