@@ -27,6 +27,10 @@ class HashTable
       @hash.update hash
     end
 
+    def set_table t
+      @table = t
+    end
+
     def [] ind
       @hash[ind]
     end
@@ -200,6 +204,7 @@ class HashTable
   def add_line hash
     if hash.is_a? HashLine
       @lines.push hash
+      hash.set_table self
     else
       @lines.push create_line(hash)
     end
@@ -229,11 +234,9 @@ class HashTable
   end
 
   def validate_types
-    @types ||= @opts[:types]
+    @types = @opts[:types] || {}
 
-    raise TypeError, "Types must be a Hash!" unless !@types || @types.is_a?(Hash)
-
-    return if !@types
+    raise TypeError, "Types must be a Hash!" unless @types.is_a?(Hash)
 
     @types.each do |key,type|
       case type
