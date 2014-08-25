@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'fasta_aux/fasta_aux'
 require 'germ/config'
+require 'genomic_locus'
 
 class Fasta
   private
