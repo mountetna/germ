@@ -1,142 +1,36 @@
 #!/usr/bin/env ruby
+#
+#
+# GTF::Line#seqname
+# GTF::Line#chrom
+#
+# VCF::Line#chrom
+#
+# GenomicLocus wants chrom
+# GenomicLocus#seqname => def seqname; chrom; end
+# Interval wants seqname
 
-class IntervalList
-  include Enumerable
-  class OrderedList
-    include Enumerable
-    def initialize ints
-      @track = ints
-    end
+# Operations that can be defined on a pair of intervals, yielding a new set of intervals
+#
+#   - overlap(b) = intersection between a and b, nil if no overlap
+#   - a.union(b) = union between a and b, nil if no overlap
+#   - a.diff(b) = set of regions of b that do not include a, { b } if no overlap
+#
+# Operations that can be defined on interval b and set a
+#   - a.overlap(b) - set of intervals in a that overlap b
+#
+# Operations on a set of intervals a
+#   - flatten - collapses overlapping intervals
+#   - 
 
-    def each
-      @track.each do |t|
-        yield t
-      end
-    end
-
-    def intersect interval
-      ovs = overlap interval
-      return nil if !ovs
-      ovs.map{|s| s.strict_overlap interval }
-    end
-    
-    def overlap interval
-      # first, find the lowest interval that is not below the given interval
-      low = (0...@track.size).bsearch do |i|
-        !@track[i].below? interval
-      end
-      # if low is nil, all of the intervals are below the search
-      # otherwise, low might be the first interval
-      return nil if !low || (low == 0 && @track[low].above?(interval))
-
-      # now you have a real value on the low end!
-      # get the first guy who is above the interval
-      high = (0...@track.size).bsearch do |i|
-        @track[i].above? interval
-      end
-      # if nil, all of these guys are not above the interval
-      high = high ? high - 1 : @track.size-1
-      o = @track[ low..high ]
-      o.empty? ? nil : o
-    end
-
-    def nearest interval
-      # find the first guy who is above the interval
-      low = (0...@track.size).bsearch do |i|
-        !@track[i].below? interval
-      end
-
-      return @track.last if !low
-      return @track[low] if low == 0
-      prev = @track[ low - 1]
-      @track[low].dist(interval) > prev.dist(interval) ? prev : @track[low]
-    end
-  end
-  class BinaryTree
-    attr_reader :max
-    def self.create intervals
-      new intervals.sort_by(&:start)
-    end
-    def initialize intervals
-      # assume they are sorted by start
-      low, high = intervals.each_slice((intervals.size/2.0).round).to_a
-      @node = low.pop
-      @left = BinaryTree.new low unless low.empty?
-      @right = BinaryTree.new high unless high.nil?
-      update_max
-    end
-
-    def update_max
-      # set your max to the max of your children
-      @max = @node.stop
-      @max = @left.max if @left && @left.max > @max
-      @max = @right.max if @right && @right.max > @max
-    end
-
-    def nearest interval
-      # 
-    end
-
-    def overlap interval
-      ols = []
-      return ols if interval.start > @max
-      ols.concat @left.overlap(interval) if @left
-      ols.push @node if @node.overlaps? interval
-      ols.concat @right.overlap(interval) if @right && !@node.above?(interval)
-      ols
-    end
-  end
-  class Tree
-    def self.create intervals
-      new intervals.sort_by(&:start), intervals.sort_by(&:stop)
-    end
-    def initialize starts, stops
-      # find the midpoint
-      midp = (starts.first.start + stops.last.stop) / 2
-      @mid = starts.clone :pos => midp
-
-      l = left_tree starts, stops
-      r = right_tree starts, stops
-      @left = IntervalList::Tree.new *l unless l.first.empty?
-      @right = IntervalList::Tree.new *r unless r.first.empty?
-      @center_start = starts - l.first - r.first
-      @center_stop = stops - l.last - r.last
-    end
-
-    private
-    def left_tree starts, stops
-      low = (0...stops.size).bsearch do |i|
-        !stops[i].below? @mid
-      end
-      left_stops = (low == 0 ? [] : stops[0..low-1])
-      return [ [], [] ] if left_stops.empty?
-      left_starts = starts & left_stops
-      [ left_stops, left_starts ]
-    end
-
-    def right_tree starts, stops
-      low = (0...starts.size).bsearch do |i|
-        starts[i].above? @mid
-      end
-      right_starts = (!low ? [] : starts[low..-1])
-      return [ [], [] ] if right_starts.empty?
-      right_stops = stops & right_starts
-      [ right_starts, right_stops ]
-    end
-  end
+module IntervalList
   module Interval
-    # this interface needs to implement :chrom, :start, :stop, and :clone
-    def clone opts={}
+    # this interface needs to implement :seqname, :start, :stop, and :copy
+    def clone
       c = copy
-      c.chrom = opts[:chrom] if opts[:chrom]
-      c.start = opts[:start] if opts[:start]
-      c.stop = opts[:stop] if opts[:stop]
-      c.start = opts[:pos] if opts[:pos]
-      c.stop = opts[:pos] if opts[:pos]
+      yield c if block_given?
       return c
     end
-    #def start= ns; @start = ns; end
-    #def stop= ns; @stop = ns; end
 
     def below? interval
       stop < interval.start
@@ -147,53 +41,49 @@ class IntervalList
     end
 
     def overlaps? interval
-      chrom == interval.chrom && !below?(interval) && !above?(interval)
+      seqname == interval.seqname && !below?(interval) && !above?(interval)
     end
 
     def contains? interval
       if interval.is_a? Numeric
         start <= interval && stop >= interval
       else
-        chrom == interval.chrom && start <= interval.start && stop >= interval.stop
+        seqname == interval.seqname && start <= interval.start && stop >= interval.stop
       end
     end
 
-    def strict_overlap interval
+    def intersect interval
       return nil if !overlaps? interval
 
-      clone chrom, [ interval.start, start ].max, [ interval.stop, stop ].min
+      clone do |c|
+        c.seqname = seqname,
+        c.start = [ interval.start, start ].max
+        c.stop = [ interval.stop, stop ].min
+      end
     end
 
-    def strict_diff interval
-      ol = strict_overlap interval
-      return IntervalList.new [ self ] if !ol
+    def diff interval
+      ol = overlap interval
+      if !ol
+        return yield([ self ])
+      end
+        
       ints = []
       if ol.start > start
-        ints.push clone( :start => start, :stop => ol.start-1 )
+        ints.push(clone { |c| c.start = start; c.stop = ol.start-1 })
       end
       if ol.stop < stop
-        ints.push clone(:start => ol.stop+1, :stop => stop)
+        ints.push(clone { |c| c.start = ol.stop+1; c.stop = stop })
       end
-      if !ints.empty?
-        return IntervalList.new ints
-      end
+      return yield(ints)
     end
 
-    def strict_union interval
+    def union interval
       return nil unless interval && overlaps?(interval)
-      clone :start => [ interval.start, start ].min, :stop => [ interval.stop, stop ].max
-    end
-
-    def overlap interval_list
-      interval_list.overlap self
-    end
-
-    def nearest interval_list
-      interval_list.nearest self
-    end
-
-    def intersect interval_list
-      interval_list.intersect self
+      clone do |c|
+        c.start = [ interval.start, start ].min
+        c.stop = [ interval.stop, stop ].max
+      end
     end
 
     def size
@@ -207,131 +97,215 @@ class IntervalList
     def dist interval
       (center-interval.center).abs
     end
-
-    def intersection_size interval_list
-      return 0 if !inters = intersect(interval_list)
-      inters.inject(0) {|sum,int| sum += int.size}
-    end
   end
-  class BasicInterval
-    include Interval
+end
 
-    attr_accessor :chrom, :start, :stop, :data
-
-    def initialize opts
-      @chrom = opts[:chrom]
-      @start = opts[:start]
-      @stop = opts[:stop]
-      @stop = @start = opts[:pos] if opts[:pos]
-      @data = opts[:data]
-    end
-    def copy
-      self.class.new :chrom => @chrom, :start => @start, :stop => @stop, :data => @data
-    end
-    def inspect
-      "#<#{self.class}:0x#{'%x' % (object_id << 1)} @chrom=#{@chrom} @start=#{@start} @stop=#{@stop}>"
-    end
-  end
-
-  def each
-    @intervals.each do |int|
-      yield int
-    end
-  end
-
+module IntervalList
   def overlap interval
-    track = @ints_chrom[interval.chrom]
-    return nil if !track
-    track.overlap interval
+    return nil unless interval_set[interval.seqname]
+    interval_set[interval.seqname].overlap interval
   end
 
   def nearest interval
-    track = @ints_chrom[interval.chrom]
-    return nil if !track
-    track.nearest interval
+    return nil unless interval_set[interval.seqname]
+    interval_set[interval.seqname].nearest interval
   end
 
-  def intersect interval
-    track = @ints_chrom[interval.chrom]
-    return nil if !track
-    track.intersect interval
-  end
-
-  # subtract this set of intervals from the given interval_list
-  def diff interval_list
-    interval_list.map do |int|
-      ols = overlap(int)
-      # if there are no overlaps, return int
-      unless ols
-        int
+  def flatten
+    current_span = nil
+    flat = []
+    each do |interval|
+      if current_span && current_span.contains?(interval)
+        current_span.stop = interval.stop
       else
-        int = ols.each do |ol|
-          int.strict_diff(ol).to_a
-        end.flatten
+        # you reached a new span
+        if current_span
+          yield current_span if block_given?
+          flat.push current_span
+        end
+        current_span = interval.clone
       end
     end
+    if respond_to? :wrap
+      wrap flat
+    else
+      flat
+    end
   end
 
-  def initialize array, opts = {}
-    @intervals = []
-    @ints_chrom = {}
-    array.each do |item|
-      if item.is_a? IntervalList::Interval
-        int = item
-      end
-      @intervals.push int
-      @ints_chrom[int.chrom] ||= []
-      @ints_chrom[int.chrom].push int
+  def add_interval int
+    # don't bother if the tree hasn't been built yet
+    if @interval_set
+      @interval_set[int.seqname].add int if @interval_set[int.seqname]
+    end
+  end
+
+  def interval_set
+    # create a new set of intervals
+    @interval_set ||= IntervalList::Set.new self.to_a
+  end
+end
+
+module IntervalList
+  class TreeNode
+    attr_reader :max
+
+    def initialize intervals
+      # assume they are sorted by start
+      
+      low, high = intervals.each_slice((intervals.size/2.0).round).to_a
+
+      @node = low.pop
+      @left = TreeNode.new low unless low.empty?
+      @right = TreeNode.new high unless high.nil?
+
+      update_max
     end
 
-    sort_ints_chrom opts[:type]
-  end
-
-  def inspect
-    "#<#{self.class}:0x#{'%x' % (object_id << 1)} @intervals=#{@intervals.size}>"
-  end
-
-  attr_reader :ints_chrom
-
-  def collapse!
-    # collapse this set of intervals down to a shorter one
-    @ints_chrom.each do |chrom,list|
-      @ints_chrom[chrom] = collapsed_list list
-    end
-
-    @intervals = @ints_chrom.map(&:last).flatten
-    self
-  end
-
-  private
-  def collapsed_list intervals
-    new_list = []
-    cache_interval = nil
-    intervals.each do |interval|
-      # it should be sorted already
-      if cache_interval
-        if !un = cache_interval.strict_union(interval)
-          new_list.push cache_interval
-          cache_interval = interval
+    def add interval
+      if interval.start < @node.start
+        if @left
+          @left.add interval
         else
-          cache_interval = un
+          @left = TreeNode.new [interval]
         end
       else
-        cache_interval = interval 
+        if @right
+          @right.add interval
+        else
+          @right = TreeNode.new [interval]
+        end
+      end
+      update_max
+    end
+
+    def update_max
+      # set your max to the max of your children
+      @max = @node
+      @max = @left.max if @left && @left.max.stop > @max.stop
+      @max = @right.max if @right && @right.max.stop > @max.stop
+    end
+
+    def is_max?
+      @max == @node
+    end
+
+
+    def breadth_traverse &block
+      @left.breadth_traverse(&block) if @left
+      yield @node
+      @right.breadth_traverse(&block) if @right
+    end
+
+    def depth_traverse &block
+      yield @node
+      @left.breadth_traverse(&block) if @left
+      @right.breadth_traverse(&block) if @right
+    end
+
+    def nearest interval
+      # if there are overlaps, pick the one with the closest distance
+      
+      ol = overlap(interval)
+      if !ol.empty?
+        return ol.min do |a,b|
+          interval.dist(a) <=> interval.dist(b)
+        end
+      end
+
+      # there are no overlaps. Find the highest stop that is less than interval.start
+      [ nearest_stop(interval),
+        nearest_start(interval) ].compact.min do |a,b|
+        interval.dist(a) <=> interval.dist(b)
       end
     end
-    new_list.push cache_interval if cache_interval
-    new_list
+
+    def overlap interval
+      ols = []
+      return ols if interval.start > @max.stop
+      ols.concat @left.overlap(interval) if @left
+      ols.push @node if @node.overlaps? interval
+      ols.concat @right.overlap(interval) if @right && !@node.above?(interval)
+      ols
+    end
+  end
+end
+
+module IntervalList
+  class Set
+    def initialize array
+      @seqs = {}
+      array.each do |item|
+        @seqs[item.seqname] ||= IntervalList::Tree.new
+        @seqs[item.seqname] << item
+      end
+    end
+    def [] ind
+      @seqs[ind]
+    end
+    def each
+      @seqs.each do |seq|
+        yield seq
+      end
+    end
+    def inspect
+      "#<#{self.class}:0x#{'%x' % (object_id << 1)} @seqs=#{@seqs.keys}>"
+    end
   end
 
-  def sort_ints_chrom type
-    @ints_chrom.each do |chrom,list|
-      case type
-      when nil, :btree
-      @ints_chrom[chrom] = IntervalList::BinaryTree.new list.sort_by{ |int| int.start }
-      when :flat
-      @ints_chrom[chrom] = IntervalList::OrderedList.new list.sort_by{ |int| int.start }
+  class Tree
+    def initialize
+      @intervals = []
+    end
+
+    def << int
+      @intervals << int
+    end
+
+    def build_tree
+      IntervalList::TreeNode.new intervals_start
+    end
+
+    def intervals_start
+      @intervals_start ||= @intervals.sort_by &:start
+    end
+
+    def intervals_stop
+      @intervals_stop ||= @intervals.sort_by { |i| -1 * i.stop }
+    end
+
+    def nearest interval
+      # first see if you have an overlap
+      ols = overlap(interval)
+
+      unless ols.empty?
+        return ols.min do |int| 
+          int.dist(interval)
+        end
       end
+
+      # you can just use the sorted intervals to do this
+      lowest_start = intervals_start.bsearch do |i|
+        i.above? interval
+      end
+      highest_stop = intervals_stop.bsearch do |i|
+        i.below? interval
+      end
+      [ lowest_start, highest_stop ].compact.min do |i|
+        i.dist(interval)
+      end
+    end
+
+    def tree
+      @tree ||= build_tree
+    end
+
+    def respond_to_missing? sym, include_all = false
+      tree.respond_to?(sym) || super
+    end
+
+    def method_missing sym, *args, &block
+      tree.send(sym, *args, &block)
     end
   end
 end

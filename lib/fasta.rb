@@ -31,18 +31,20 @@ class Fasta
 
   class Chrom
     include GenomicLocus
-    attr_reader :name, :size, :start
-    alias_method :chrom, :name
+    attr_reader :seqname, :size, :start
+    alias_method :chrom, :seqname
     alias_method :pos, :start
     alias_method :stop, :size
     def initialize n, fasta, sz, st
-      @name, @fasta, @size, @byte_start = n, fasta, sz, st
+      @seqname, @fasta, @size, @byte_start = n, fasta, sz, st
+      # truncate the name
+      @seqname = short_chrom
       @start = 1
     end
 
     def file_pos pos
       return nil if !contains? pos
-      byte_start + pos/line_size*(line_size+1) + (pos % line_size) - 1 - ((pos % line_size == 0) ? 1 : 0)
+      @byte_start + pos/line_size*(line_size+1) + (pos % line_size) - 1 - ((pos % line_size == 0) ? 1 : 0)
     end
 
     private
@@ -99,12 +101,12 @@ class Fasta
     seq && seq.upcase
   end
 
-  def interval_missing?(chrom,start,stop)
-    !@chroms[chrom] || !@chroms[chrom].contains?([start,stop])
+  def interval_missing?(locus)
+    !@chroms[locus.seqname] || !@chroms[locus.seqname].contains?(locus)
   end
 
   def get_masked_seq chrom, start, stop
-    raise ArgumentError, "Improper interval #{chrom}:#{start}-#{stop}" if interval_missing?(chrom,start,stop)
+    raise ArgumentError, "Improper interval #{chrom}:#{start}-#{stop}" if interval_missing?(GenomicLocus::Region.new(chrom,start,stop))
 
     get_seq_chunk(@chroms[chrom].file_pos(start), @chroms[chrom].file_pos(stop)).gsub(/\n/,'')
   end
