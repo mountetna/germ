@@ -51,13 +51,21 @@ class HashTable
       @invalid
     end
 
+    def respond_to_missing? sym, include_all = false
+      if sym.to_s =~ /^(.*)=$/
+        true
+      else
+        @hash.has_key?(sym) || super
+      end
+    end
+
     def method_missing sym, *args, &block
-      if @hash[sym]
+      if @hash.has_key? sym
         @hash[sym]
       elsif sym.to_s =~ /(.*)=/ 
         @hash[$1.to_sym] = args.first
       else
-        super sym, *args, &block
+        super
       end
     end
 
@@ -108,18 +116,18 @@ class HashTable
   attr_accessor :header, :types
   def [](ind)
     if ind.is_a? Range
-      derived_ht @lines[ind]
+      wrap @lines[ind]
     else
       @lines[ind]
     end
   end
 
+  def respond_to_missing? sym, include_all = false
+    @index.has_key?(sym) || super
+  end
+
   def method_missing sym, *args, &block
-    if @index[sym]
-      @index[sym]
-    else
-      super sym, *args, &block
-    end
+    @index[sym] || super
   end
 
   def sum(col)
@@ -130,7 +138,7 @@ class HashTable
 
   [ :select, :reject, :sort, :sort_by ].each do |meth|
     define_method(meth) do |&block|
-      derived_ht @lines.send(meth, &block)
+      wrap @lines.send(meth, &block)
     end
   end
 
@@ -200,6 +208,18 @@ class HashTable
     add_line hash
   end
 
+  def concat other_table
+    raise TypeError unless other_table.is_a? self.class
+    other_table.each do |line|
+      add_line line
+    end
+    self
+  end
+
+  def wrap lines
+    self.class.new lines, @opts.merge( :header => @header.clone, :types => @types.clone )
+  end
+
   protected
   def add_line hash
     if hash.is_a? HashLine
@@ -215,10 +235,6 @@ class HashTable
     validate_header
 
     validate_types
-  end
-
-  def derived_ht lines
-    self.class.new lines, @opts.merge( :header => @header.clone, :types => @types.clone )
   end
 
   def validate_header
