@@ -20,10 +20,9 @@ class GTF < HashTable
 
   header_off
 
-  class GTFLine < HashTable::HashLine
+  class Feature < HashTable::HashLine
     include GenomicLocus
     def chrom; seqname; end
-    def chrom= nc; seqname = nc; end
     def copy
       self.class.new @hash.clone, @table
     end
@@ -40,12 +39,11 @@ class GTF < HashTable
       end
     end
   end
-  line_class GTFLine
-
+  line_class GTF::Feature
 
   def gene name
     intervals = gene_name[name]
-    @genes[name] ||= GTF::Gene.new intervals if intervals
+    @genes[name] ||= GTF::Gene.new wrap(intervals) if intervals
   end
 
   def initialize file, opts=nil
@@ -69,8 +67,12 @@ class GTF < HashTable
     @opts[:fasta] || Fasta.default
   end
 
-  def to_interval_list
-    IntervalList.new self
+  def wrap lines
+    super lines.sort_by &:start
+  end
+
+  def add_line hash
+    add_interval(super)
   end
 
   protected
