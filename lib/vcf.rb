@@ -122,8 +122,8 @@ class VCF < Mutation::Collection
       end
     end
 
-    def respond_to? sym
-      @hash[sym] || super(sym)
+    def respond_to_missing? sym, include_all = false
+      @hash[sym] || super
     end
 
     def homozygous?

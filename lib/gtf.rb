@@ -16,8 +16,16 @@ class GTF < HashTable
       self.class.new @hash.clone, @table
     end
 
+    def respond_to_missing? sym, include_all = false
+      self[:attribute].has_key?(sym) || super
+    end
+
     def method_missing sym, *args, &block
-      self[:attribute][sym] || super(sym, *args, &block)
+      if self[:attribute].has_key?(sym)
+        self[:attribute][sym]
+      else
+        super
+      end
     end
   end
   line_class GTFLine

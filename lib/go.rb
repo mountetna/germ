@@ -15,6 +15,10 @@ module GO
       @tags[tag] << value
     end
 
+    def respond_to_missing? sym, include_all = false
+      @tags.has_key?(sym) || super
+    end
+
     def method_missing sym
       set = @tags[sym]
       if set 
@@ -24,7 +28,7 @@ module GO
           set
         end
       else
-        super sym
+        super
       end
     end
   end

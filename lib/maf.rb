@@ -42,6 +42,10 @@ class Maf < Mutation::Collection
       @muts.push Mutation.new(chrom, pos, ref, alt, ref_count, alt_count)
     end
 
+    def respond_to_missing? sym, include_all = false
+      [ :ref_count, :alt_count ].include?(sym) || super
+    end
+
     def method_missing sym, *args, &block
       if sym == :ref_count
         [ :t_ref_count, :tumor_ref_count ].each do |s|
@@ -54,7 +58,7 @@ class Maf < Mutation::Collection
         end
         nil
       else
-        super sym, *args, &block
+        super
       end
     end
 
