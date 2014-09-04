@@ -13,6 +13,10 @@ class Flagstat
     end
   end
 
+  def respond_to_missing? sym, include_all = false
+    @flags[sym] || sym.to_s =~ /^chastity_/ || super
+  end
+
   def method_missing(method, *args, &block)
     return @flags[method].first.to_i if @flags[method]
     method.to_s.match(/^chastity_(.*)/) do |m|
