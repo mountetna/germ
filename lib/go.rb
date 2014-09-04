@@ -33,17 +33,8 @@ module GO
     end
   end
   class Ontology
-    class << self
-      ONTOLOGIES = {}
-      def load_ontology sym, file
-        ONTOLOGIES[sym] ||= GO::Ontology.new file
-      end
-      def default
-        record = GermConfig.get_conf :go, :ontology, :default_ontology
-        file = GermConfig.get_conf :go, :ontology, record if record
-        load_ontology record, file if file && File.exists?(file)
-      end
-    end
+    extend GermDefault
+
     attr_reader :header, :terms
     def initialize file
       @header = TagSet.new
@@ -95,17 +86,7 @@ module GO
     end
   end
   class Annotation < HashTable
-    class << self
-      ANNOTATIONS = {}
-      def load_annotation sym, file
-        ANNOTATIONS[sym] ||= GO::Annotation.new file
-      end
-      def default
-        record = GermConfig.get_conf :go, :annotation, :default_annotation
-        file = GermConfig.get_conf :go, :annotation, record if record
-        load_annotation record, file if file && File.exists?(file)
-      end
-    end
+    extend GermDefault
     def initialize file=nil, opts={}
       opts = opts.merge :header => [ :db, :db_object_id, :db_object_symbol,
                                :qualifier, :go_id, :db_reference,

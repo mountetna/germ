@@ -6,9 +6,9 @@ require 'genomic_locus'
 class Fasta
   private
   include FastaAux
+  extend GermDefault
 
   class << self
-    GENOMES = {}
     def guess_line_size file
       io = File.open file
 
@@ -26,39 +26,6 @@ class Fasta
 
       # You can't guess, raise an exception.
       raise "Could not guess file line size, please specify"
-    end
-
-    def default
-      sym = genome_file :default_genome
-      file = genome_file sym
-      load_genome sym, file if file && File.exists?(file)
-    end
-
-    def load_genome sym, file
-      GENOMES[sym] ||= Fasta.new file, genome_linesize(sym)
-    end
-
-    def method_missing sym, *args, &block
-      file = genome_file(sym)
-      return load_genome sym, file if file && file.is_a?(String) && File.exists?(file)
-      super sym, *args, &block
-    end
-
-    private
-    def genome_file sym
-      record = GermConfig.get_conf :fasta, sym
-      if record.is_a? Hash
-        record[:file] or raise "Config record is not well-formed, expected :file"
-      else
-        record
-      end
-    end
-
-    def genome_linesize sym
-      record = GermConfig.get_conf :fasta, sym
-      if record.is_a? Hash
-        record[:linesize] or raise "Config record is not well-formed, expected :linesize"
-      end
     end
   end
 

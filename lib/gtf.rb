@@ -4,8 +4,20 @@ require 'genomic_locus'
 require 'genetic_code'
 require 'gtf/gene'
 require 'fasta'
+require 'germ/config'
 
 class GTF < HashTable
+  extend GermDefault
+  include IntervalList
+
+  def self.default_create file, idx=nil
+    if idx
+      new file, :idx => idx
+    else
+      new file
+    end
+  end
+
   header_off
 
   class GTFLine < HashTable::HashLine
