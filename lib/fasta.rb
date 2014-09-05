@@ -31,12 +31,12 @@ class Fasta
 
   class Chrom
     include GenomicLocus
-    attr_reader :seqname, :size, :start
+    attr_reader :seqname, :size, :start, :total
     alias_method :chrom, :seqname
     alias_method :pos, :start
     alias_method :stop, :size
-    def initialize n, fasta, sz, st
-      @seqname, @fasta, @size, @byte_start = n, fasta, sz, st
+    def initialize n, fasta, sz, st, t
+      @seqname, @fasta, @size, @byte_start, @total = n, fasta, sz, st, t
       # truncate the name
       @seqname = short_chrom
       @start = 1
@@ -59,20 +59,37 @@ class Fasta
 
   def compute_chrom_stats
     @chroms = {}
+    total = 0
     @seq_names.each_with_index do |name, i|
       if i < @seq_names.size-1
         size = seq_size_from_byte_size(@seq_starts[i+1] - @seq_starts[i] - @seq_names[i+1].size - 3)
       else
         size = seq_size_from_byte_size(@io.size - @seq_starts[i])
       end
-      @chroms[name] = Fasta::Chrom.new name, self, size, @seq_starts[i]
+      total += size
+      @chroms[name] = Fasta::Chrom.new name, self, size, @seq_starts[i], total
       # just save it as both
       @chroms[ @chroms[name].short_chrom ] = @chroms[name]
     end
   end
 
+  def shorten_seq_names
+    @seq_names = @seq_names.map do |name|
+      @chroms[name].short_chrom
+    end
+  end
+
+  def position_from_total p, chrom_only=nil
+    p_chrom = @seq_names.bsearch do |name|
+      low = @chroms[name].total - @chroms[name].size + 1
+      high = @chroms[name].total
+      p < low || p <= high
+    end
+    chrom_only ? p_chrom : GenomicLocus::Position.new(p_chrom, p - @chroms[p_chrom].total + @chroms[p_chrom].size)
+  end
+
   public
-  attr_reader :line_size, :chroms
+  attr_reader :line_size, :chroms, :seq_names
   def initialize file, size=nil
     @io = File.open(file)
 
@@ -81,10 +98,22 @@ class Fasta
     get_seq_starts
 
     compute_chrom_stats
+
+    shorten_seq_names
   end
 
-  def size
-    @chroms.inject(0) { |s,v| s += v.last.size }
+  def genome_size
+    @genome_size ||= @seq_names.inject(0) { |s,name| s += @chroms[name].size; s }
+  end
+
+  # find a random chromosome, weighted by size
+  def random_chrom
+    position_from_total 1+rand(genome_size),true
+  end
+
+  # pick a random base in the genome
+  def random_pos
+    position_from_total 1+rand(genome_size)
   end
 
   def inspect
