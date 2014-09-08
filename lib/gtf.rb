@@ -67,10 +67,6 @@ class GTF < HashTable
     @opts[:fasta] || Fasta.default
   end
 
-  def wrap lines
-    super lines.sort_by &:start
-  end
-
   def add_line hash
     add_interval(super)
   end
