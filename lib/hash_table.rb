@@ -142,6 +142,16 @@ class HashTable
     end
   end
 
+  def sample *args
+    samp = @lines.sample *args
+    if samp.is_a? Array
+      wrap samp
+    else
+      samp
+    end
+  end
+
+
   def select! &block
     @lines.select! &block
     self
