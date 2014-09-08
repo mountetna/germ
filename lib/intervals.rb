@@ -102,8 +102,8 @@ end
 
 module IntervalList
   def overlap interval
-    return nil unless interval_set[interval.seqname]
-    interval_set[interval.seqname].overlap interval
+    return present([]) unless interval_set[interval.seqname]
+    present(interval_set[interval.seqname].overlap interval)
   end
 
   def nearest interval
@@ -126,10 +126,14 @@ module IntervalList
         current_span = interval.clone
       end
     end
+    present flat
+  end
+
+  def present obj
     if respond_to? :wrap
-      wrap flat
+      wrap obj
     else
-      flat
+      obj
     end
   end
 
