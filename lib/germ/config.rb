@@ -47,14 +47,18 @@ module GermDefault
     @key_chain = key_chain
   end
 
+  def cache
+    CACHE[self] ||= {}
+  end
+
   def default
     # get the default key
-    CACHE[:default] ||= load_default
+    cache[:default] ||= load_default
   end
 
 
   def cache_load key
-    CACHE[key] ||= load_key(key)
+    cache[key] ||= load_key(key)
   end
 
   def method_missing sym, *args, &block
