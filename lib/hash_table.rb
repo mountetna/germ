@@ -302,8 +302,9 @@ class HashTable
 
   def add_index line
     @index.each do |key,ind|
-      next if !line.send(key)
-      (ind[ line.send(key) ] ||= []) << line
+      if val = line.send(key)
+        (ind[ val ] ||= []) << line
+      end
     end
     line
   end
