@@ -27,6 +27,10 @@ class GTF < HashTable
       self.class.new @hash.clone, @table
     end
 
+    def seq
+      @seq ||= @table.fasta.locus_seq self
+    end
+
     def respond_to_missing? sym, include_all = false
       self[:attribute].has_key?(sym) || super
     end
