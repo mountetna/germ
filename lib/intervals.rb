@@ -115,7 +115,7 @@ module IntervalList
     current_span = nil
     flat = []
     each do |interval|
-      if current_span && current_span.contains?(interval)
+      if current_span && current_span.overlaps?(interval)
         current_span.stop = interval.stop
       else
         # you reached a new span
@@ -125,6 +125,10 @@ module IntervalList
         end
         current_span = interval.clone
       end
+    end
+    if current_span
+      yield current_span if block_given?
+      flat.push current_span
     end
     present flat
   end
@@ -139,9 +143,7 @@ module IntervalList
 
   def add_interval int
     # don't bother if the tree hasn't been built yet
-    if @interval_set
-      @interval_set[int.seqname].add int if @interval_set[int.seqname]
-    end
+    @interval_set << int if @interval_set
   end
 
   def interval_set
@@ -240,9 +242,13 @@ module IntervalList
     def initialize array
       @seqs = {}
       array.each do |item|
-        @seqs[item.seqname] ||= IntervalList::Tree.new
-        @seqs[item.seqname] << item
+        self << item
       end
+    end
+
+    def << item
+      @seqs[item.seqname] ||= IntervalList::Tree.new
+      @seqs[item.seqname] << item
     end
     def [] ind
       @seqs[ind]
