@@ -4,7 +4,7 @@ class GTF < HashTable
     include IntervalList
     attr_reader :name, :strand, :transcripts, :intervals
     def initialize intervals
-      @intervals = intervals
+      @intervals = intervals.sort_by &:start
       @gene = @intervals.find{|l| l.feature == "gene"}
       @name = @gene.attribute[:gene_name]
       @strand = @gene.strand
@@ -58,8 +58,11 @@ class GTF < HashTable
     private
     def build_transcripts
       (@intervals.select{|l| l.feature == "transcript"}).map do |t|
-        name = t.attribute[:transcript_name]
-        GTF::Transcript.new @intervals.select{|l| l.attribute[:transcript_name] == name}, name, @gtf
+        name = t.transcript_name
+        transcript_ints = @intervals.select do |l|
+          l.attribute[:transcript_name] == name && l.seqname == t.seqname
+        end
+        GTF::Transcript.new(transcript_ints, name, @gtf)
       end
     end
   end
@@ -100,30 +103,6 @@ class GTF < HashTable
       end
     end
 
-    def cds_pos pos
-      bases = 0
-      if @strand == "+"
-        cds.each do |c|
-          if c.contains? pos
-            bases += pos - c.start + 1
-            break
-          else
-            bases += c.size
-          end
-        end
-      else
-        cds.reverse.each do |c|
-          if c.contains? pos
-            bases += c.stop - pos + 1
-            break
-          else
-            bases += c.size
-          end
-        end
-      end
-      { :type => :cds, :pos => bases/3 }
-    end
-
     def canonical_transcript_score
       (is_ccds? ? 100000 : 0) + cds_size
     end
@@ -158,9 +137,7 @@ class GTF < HashTable
     end
 
     def get_cds_seq
-      seq = cds.map do |c|
-        c.seq ||= @gtf.fasta.locus_seq c
-      end.join ''
+      seq = cds.map(&:seq).join ''
       strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
     end
 
@@ -288,6 +265,13 @@ class GTF < HashTable
     end
     def inspect
       "#<#{self.class}:0x#{'%x' % (object_id << 1)} @name=#{@name} @intervals=#{@intervals.count}>"
+    end
+    # output this transcript in the odious 'refFlat' format, demanded by Picard and others
+    def to_refflat
+      [ gene_name, name, chrom, strand, start, stop, cds.map(&:start).min, cds.map(&:stop).max, exons.count,
+        exons.map(&:start).sort.join(','),
+        exons.map(&:stop).sort.join(',')
+      ].join "\t"
     end
   end
 end
