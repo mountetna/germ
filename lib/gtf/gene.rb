@@ -1,4 +1,19 @@
 class GTF < HashTable
+  def gene name
+    intervals = gene_name[name]
+    @genes[name] ||= GTF::Gene.new wrap(intervals) if intervals
+  end
+
+  def promoters
+    @promoters ||= begin
+      promoters = []
+      gene_name.keys.each do |name|
+        promoters.concat gene(name).transcripts.map(&:transcript_start)
+      end
+      wrap promoters
+    end
+  end
+
   class Gene
     include Enumerable
     include IntervalList
@@ -255,6 +270,7 @@ class GTF < HashTable
     def transcript_start
       @transcript_start ||= @transcript.clone do |c|
         c.start = c.stop = (strand == "+" ? start : stop)
+        c.feature = "transcript_start"
       end
     end
     def exons

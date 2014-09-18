@@ -45,11 +45,6 @@ class GTF < HashTable
   end
   line_class GTF::Feature
 
-  def gene name
-    intervals = gene_name[name]
-    @genes[name] ||= GTF::Gene.new wrap(intervals) if intervals
-  end
-
   def initialize file, opts=nil
     opts = { :comment => "#", :sep => " "}.merge(opts || {})
 
