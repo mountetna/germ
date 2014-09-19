@@ -110,14 +110,6 @@ class Mutation
       def comments c
         @comment = c
       end
-
-      def read(filename,mutation_config=nil)
-        set = new mutation_config, true
-
-        set.load_file filename
-
-        return set
-      end
     end
 
     def clean_header s
