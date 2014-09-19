@@ -32,6 +32,8 @@ class Maf < Mutation::Collection
   class Line < Mutation::Record
     alias_key :chrom, :chromosome
     alias_key :pos, :start_position
+    alias_key :start, :start_position
+    alias_key :stop, :end_position
     alias_key :ref, :reference_allele
     def alt
       tumor_seq_allele1 == reference_allele ? tumor_seq_allele2 : tumor_seq_allele1
