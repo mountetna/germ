@@ -1,4 +1,5 @@
 require 'genomic_locus'
+require 'fasta'
 class Mutation
   include GenomicLocus
   # This is a generic description of a mutation.
@@ -6,8 +7,11 @@ class Mutation
 
   attr_reader :chrom, :pos, :ref, :alt, :ref_count, :alt_count
   def initialize chrom, pos, ref, alt, ref_count=nil, alt_count=nil
-    raise "Alleles must not be empty." if ref !~ VALID_ALLELE || alt !~ VALID_ALLELE
     @chrom, @pos, @ref, @alt, @ref_count, @alt_count = chrom, pos, ref, alt, ref_count, alt_count
+  end
+
+  def is_valid?
+    ref =~ VALID_ALLELE && alt =~ VALID_ALLELE
   end
 
   def ref_at loc
