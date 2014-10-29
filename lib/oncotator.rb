@@ -143,6 +143,11 @@ class Oncotator
   end
 end
 class Mutation
+  class Record < HashTable::HashLine
+    def skip_oncotator? criteria=nil
+      return true if !mut.onco || mut.onco.empty? || criteria_failed?(mut.onco, criteria || :oncotator)
+    end
+  end
   module Oncotate
     def onco
       raise ArgumentError, @onco_error unless valid_onco_input?
@@ -151,10 +156,6 @@ class Mutation
 
     def discard_onco
       @onco = nil
-    end
-
-    def skip_oncotator? criteria=nil
-      return true if !onco || onco.empty? || criteria_failed?(onco, criteria || :oncotator)
     end
 
     def inspect
