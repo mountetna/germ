@@ -3,27 +3,37 @@ module GenomicLocus
   include IntervalList::Interval
   class Position
     include GenomicLocus
-    attr_reader :chrom, :pos
-    def initialize chrom, pos
-      @chrom, @pos = chrom, pos
+    attr_accessor :seqname, :pos
+    def initialize seqname, pos
+      @seqname, @pos = seqname, pos
     end
 
     alias_method :start, :pos
     alias_method :stop, :pos
-    alias_method :seqname, :chrom
+    def copy
+      self.class.new seqname, pos
+    end
   end
 
   class Region
     include GenomicLocus
-    attr_reader :chrom, :start, :stop
-    alias_method :seqname, :chrom
-    def initialize chrom, start, stop
-      @chrom, @start, @stop = chrom, start, stop
+    attr_accessor :seqname, :start, :stop
+    def initialize seqname, start, stop
+      @seqname, @start, @stop = seqname, start, stop
+    end
+
+    def copy
+      self.class.new seqname, start, stop
     end
   end
 
   def loc
     @loc ||= "#{short_chrom}:#{start}".to_sym
+  end
+
+  def default_stop
+    # this should always be correct! Even if there is a dash.
+    start + ref.size - 1
   end
 
   def range
@@ -35,6 +45,6 @@ module GenomicLocus
   end
 
   def short_chrom
-    @short_chrom ||= chrom.sub(/^chr/,'')
+    @short_chrom ||= seqname.sub(/^chr/,'')
   end
 end

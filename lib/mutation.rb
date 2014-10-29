@@ -5,9 +5,18 @@ class Mutation
   # This is a generic description of a mutation.
   VALID_ALLELE = /^[ATGCNatgcn]+$/
 
-  attr_reader :chrom, :pos, :ref, :alt, :ref_count, :alt_count
-  def initialize chrom, pos, ref, alt, ref_count=nil, alt_count=nil
-    @chrom, @pos, @ref, @alt, @ref_count, @alt_count = chrom, pos, ref, alt, ref_count, alt_count
+  attr_reader :seqname, :pos, :ref, :alt, :ref_count, :alt_count
+  alias_method :start, :pos
+  def initialize seqname, pos, ref, alt, ref_count=nil, alt_count=nil
+    @seqname, @pos, @ref, @alt, @ref_count, @alt_count = seqname, pos, ref, alt, ref_count, alt_count
+  end
+
+  def stop
+    start + ref.size - 1
+  end
+
+  def to_s
+    range.to_s + ":#{ref}-#{alt}"
   end
 
   def is_valid?

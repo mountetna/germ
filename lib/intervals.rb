@@ -1,15 +1,6 @@
 #!/usr/bin/env ruby
 #
 #
-# GTF::Line#seqname
-# GTF::Line#chrom
-#
-# VCF::Line#chrom
-#
-# GenomicLocus wants chrom
-# GenomicLocus#seqname => def seqname; chrom; end
-# Interval wants seqname
-
 # Operations that can be defined on a pair of intervals, yielding a new set of intervals
 #
 #   - overlap(b) = intersection between a and b, nil if no overlap

@@ -30,7 +30,7 @@ class Maf < Mutation::Collection
   end
 
   class Line < Mutation::Record
-    alias_key :chrom, :chromosome
+    alias_key :seqname, :chromosome
     alias_key :pos, :start_position
     alias_key :start, :start_position
     alias_key :stop, :end_position
@@ -41,7 +41,7 @@ class Maf < Mutation::Collection
 
     def initialize h, table
       super h, table
-      @muts.push Mutation.new(chrom, pos, ref, alt, ref_count, alt_count)
+      @muts.push Mutation.new(seqname, pos, ref, alt, ref_count, alt_count)
     end
 
     def respond_to_missing? sym, include_all = false

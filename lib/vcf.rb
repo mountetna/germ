@@ -55,6 +55,9 @@ class VCF < Mutation::Collection
   end
 
   class Line < Mutation::Record
+    alias_key :seqname, :chrom
+    alias_key :start, :pos
+    alias_key :stop, :default_stop
     def initialize(h, s)
       super h, s
 

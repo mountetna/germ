@@ -15,7 +15,7 @@ class MuTect < Mutation::Collection
   comments "##"
 
   class Line < Mutation::Record
-    alias_key :chrom, :contig
+    alias_key :seqname, :contig
     alias_key :pos, :position
     alias_key :ref, :ref_allele
     alias_key :alt, :alt_allele
@@ -43,7 +43,7 @@ class MuTect < Mutation::Collection
 
     def initialize h, table
       super h, table
-      @muts.push Mutation.new(chrom,pos,ref,alt,t_ref_count,t_alt_count)
+      @muts.push Mutation.new(seqname,pos,ref,alt,t_ref_count,t_alt_count)
     end
   end
   line_class MuTect::Line

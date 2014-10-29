@@ -32,7 +32,6 @@ class Fasta
   class Chrom
     include GenomicLocus
     attr_reader :seqname, :size, :start, :total
-    alias_method :chrom, :seqname
     alias_method :pos, :start
     alias_method :stop, :size
     def initialize n, fasta, sz, st, t
@@ -125,8 +124,8 @@ class Fasta
     get_seq locus.short_chrom, locus.start, locus.stop
   end
 
-  def get_seq chrom, start, stop
-    seq = get_masked_seq chrom, start, stop
+  def get_seq seqname, start, stop
+    seq = get_masked_seq seqname, start, stop
     seq && seq.upcase
   end
 
@@ -134,9 +133,9 @@ class Fasta
     !@chroms[locus.seqname] || !@chroms[locus.seqname].contains?(locus)
   end
 
-  def get_masked_seq chrom, start, stop
-    raise ArgumentError, "Improper interval #{chrom}:#{start}-#{stop}" if interval_missing?(GenomicLocus::Region.new(chrom,start,stop))
+  def get_masked_seq seqname, start, stop
+    raise ArgumentError, "Improper interval #{seqname}:#{start}-#{stop}" if interval_missing?(GenomicLocus::Region.new(seqname,start,stop))
 
-    get_seq_chunk(@chroms[chrom].file_pos(start), @chroms[chrom].file_pos(stop)).gsub(/\n/,'')
+    get_seq_chunk(@chroms[seqname].file_pos(start), @chroms[seqname].file_pos(stop)).gsub(/\n/,'')
   end
 end

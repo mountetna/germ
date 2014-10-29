@@ -22,7 +22,6 @@ class GTF < HashTable
 
   class Feature < HashTable::HashLine
     include GenomicLocus
-    def chrom; seqname; end
     def copy
       self.class.new @hash.clone, @table
     end

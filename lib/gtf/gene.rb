@@ -144,7 +144,7 @@ class GTF < HashTable
     def get_cds_pos
       pos = cds.map do |c|
         c.size.times.map do |i|
-          GenomicLocus::Position.new c.chrom, i + c.start
+          GenomicLocus::Position.new c.seqname, i + c.start
         end
       end.flatten
 
@@ -284,7 +284,7 @@ class GTF < HashTable
     end
     # output this transcript in the odious 'refFlat' format, demanded by Picard and others
     def to_refflat
-      [ gene_name, name, chrom, strand, start, stop, cds.map(&:start).min, cds.map(&:stop).max, exons.count,
+      [ gene_name, name, seqname, strand, start, stop, cds.map(&:start).min, cds.map(&:stop).max, exons.count,
         exons.map(&:start).sort.join(','),
         exons.map(&:stop).sort.join(',')
       ].join "\t"
