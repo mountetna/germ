@@ -128,6 +128,7 @@ class Mutation
       # get types from required
       opts[:types] = types_from_required opts
       super obj, opts
+      @header = required unless @header
       @mutation_config = YAML.load_file(opts[:mutation_config]) if opts[:mutation_config]
     end
 
