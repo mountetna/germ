@@ -104,7 +104,7 @@ class VCF < Mutation::Collection
     end
 
     def genotype(s)
-      @genotypes[s] if @genotypes
+      @genotypes[s.to_sym] if @genotypes
     end
   end
   line_class VCF::Line
