@@ -17,6 +17,8 @@ class MuTect < Mutation::Collection
   class Line < Mutation::Record
     alias_key :seqname, :contig
     alias_key :pos, :position
+    alias_key :start, :position
+    alias_key :stop, :default_stop
     alias_key :ref, :ref_allele
     alias_key :alt, :alt_allele
     def keep_somatic?
@@ -24,10 +26,6 @@ class MuTect < Mutation::Collection
     end
     def keep_germline?
       !criteria_failed?(self, [ :mutect, :germline ])
-    end
-
-    def end_position
-      position.to_i + ref_allele.length-1
     end
 
     def q0_ratio
