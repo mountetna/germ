@@ -9,7 +9,7 @@ module GO
 
     attr_reader :tags
     def add_tag line
-      tag, value = line.scan(/^(.*?): (.*?)(?:!.*)?$/).flatten
+      tag, value = line.scan(/^(.*?): (.*?)(?: !.*)?$/).flatten
       tag = tag.to_sym
       @tags[tag] ||= Set.new
       @tags[tag] << value
@@ -17,6 +17,10 @@ module GO
 
     def respond_to_missing? sym, include_all = false
       @tags.has_key?(sym) || super
+    end
+
+    def tag sym
+      @tags[sym] || []
     end
 
     def method_missing sym
@@ -32,10 +36,41 @@ module GO
       end
     end
   end
+  class Term
+    attr_reader :id, :name, :def, :namespace
+    def initialize tags, ont
+      @tags = tags
+      @ontology = ont
+      @id = @tags.id
+      @name = @tags.name
+      @namespace = @tags.namespace
+      @def = @tags.def
+    end
+
+    def parent_terms
+      @parent_terms ||= get_parent_terms
+    end
+
+    def collected_terms
+      @collected_terms ||= ([self] + parent_terms + parent_terms.map(&:collected_terms)).flatten.uniq
+    end
+
+    def depth
+      # see how far you have to go up to get to your root
+      @depth ||= (parent_terms.map(&:depth).min || 0) + 1
+    end
+
+    private
+    def get_parent_terms
+      @tags.tag(:is_a).map do |isa|
+        @ontology.term isa
+      end.compact
+    end
+  end
   class Ontology
     extend GermDefault
 
-    attr_reader :header, :terms
+    attr_reader :header
     def initialize file
       @header = TagSet.new
       @terms = {}
@@ -43,6 +78,21 @@ module GO
       parse_file(file) if File.exists?(file)
     end
 
+    def inspect
+      "#<#{self.class.name}:#{object_id} @terms=#{@terms.count}>"
+    end
+
+    def term id
+      @terms[id]
+    end
+
+    def find pattern
+      @terms.select do |id,term|
+        term.name =~ pattern
+      end.values
+    end
+
+    private
     BLANK_LINE = /^\s*$/
     TERM = /^\[Term\]$/
     TYPEDEF = /^\[Typedef\]$/
@@ -62,12 +112,8 @@ module GO
       end
     end
 
-    def inspect
-      "#<#{self.class.name}:#{object_id} @terms=#{@terms.count}>"
-    end
-
     def read_term
-      term = read_stanza
+      term = GO::Term.new read_stanza, self
       @terms[term.id] = term
     end
 
@@ -98,13 +144,19 @@ module GO
                   :comment => "!",
                   :ontology => GO::Ontology.default
       super file, opts
+      @annos = {}
     end
     def ontology
       @ontology ||= @opts[:ontology]
     end
     class AnnotationLine < HashTable::HashLine
       def term
-        @table.ontology.terms[go_id]
+        @table.ontology.term go_id
+      end
+    end
+    def gene_annotations gene
+      @annos[gene] ||= select do |g|
+        g.db_object_symbol == gene
       end
     end
     line_class AnnotationLine
