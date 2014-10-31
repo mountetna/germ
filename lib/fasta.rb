@@ -58,6 +58,7 @@ class Fasta
 
   def compute_chrom_stats
     @chroms = {}
+    @chrom_alias = {}
     total = 0
     @seq_names.each_with_index do |name, i|
       if i < @seq_names.size-1
@@ -66,25 +67,28 @@ class Fasta
         size = seq_size_from_byte_size(@io.size - @seq_starts[i])
       end
       total += size
-      @chroms[name] = Fasta::Chrom.new name, self, size, @seq_starts[i], total
+      chrom = Fasta::Chrom.new name, self, size, @seq_starts[i], total
+      name = chrom.short_chrom
+      @chroms[name] = chrom
       # just save it as both
-      @chroms[ @chroms[name].short_chrom ] = @chroms[name]
+      @chrom_alias[ chrom.short_chrom ] = chrom
+      @chrom_alias[ chrom.long_chrom ] = chrom
     end
   end
 
   def shorten_seq_names
     @seq_names = @seq_names.map do |name|
-      @chroms[name].short_chrom
+      chrom(name).short_chrom
     end
   end
 
   def position_from_total p, chrom_only=nil
     p_chrom = @seq_names.bsearch do |name|
-      low = @chroms[name].total - @chroms[name].size + 1
-      high = @chroms[name].total
+      low = chrom(name).total - chrom(name).size + 1
+      high = chrom(name).total
       p < low || p <= high
     end
-    chrom_only ? p_chrom : GenomicLocus::Position.new(p_chrom, p - @chroms[p_chrom].total + @chroms[p_chrom].size)
+    chrom_only ? p_chrom : GenomicLocus::Position.new(p_chrom, p - chrom(p_chrom).total + chrom(p_chrom).size)
   end
 
   public
@@ -101,8 +105,12 @@ class Fasta
     shorten_seq_names
   end
 
+  def chrom name
+    @chrom_alias[name]
+  end
+
   def genome_size
-    @genome_size ||= @seq_names.inject(0) { |s,name| s += @chroms[name].size; s }
+    @genome_size ||= @seq_names.inject(0) { |s,name| s += chrom(name).size; s }
   end
 
   # find a random chromosome, weighted by size
@@ -130,12 +138,12 @@ class Fasta
   end
 
   def interval_missing?(locus)
-    !@chroms[locus.seqname] || !@chroms[locus.seqname].contains?(locus)
+    !chrom(locus.seqname) || !chrom(locus.seqname).contains?(locus)
   end
 
   def get_masked_seq seqname, start, stop
     raise ArgumentError, "Improper interval #{seqname}:#{start}-#{stop}" if interval_missing?(GenomicLocus::Region.new(seqname,start,stop))
 
-    get_seq_chunk(@chroms[seqname].file_pos(start), @chroms[seqname].file_pos(stop)).gsub(/\n/,'')
+    get_seq_chunk(chrom(seqname).file_pos(start), chrom(seqname).file_pos(stop)).gsub(/\n/,'')
   end
 end
