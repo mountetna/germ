@@ -128,7 +128,7 @@ class Codon
 end
 
 class TriNuc
-  attr_reader :codon, :pos, :seq, :index
+  attr_reader :codon, :pos, :seq, :index, :strand
   def initialize seq, pos, strand, ind=nil
     raise ArgumentError, "Sequence is malformed" unless seq && seq =~ /^[ATGC]{3}$/
     raise ArgumentError, "Three genomic coordinates are required" unless pos.is_a?(Array) && pos.length == 3
