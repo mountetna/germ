@@ -122,12 +122,12 @@ class HashTable
     end
   end
 
-  def respond_to_missing? sym, include_all = false
-    @index.has_key?(sym) || super
+  def idx key, value=nil
+    @wrapped_index[ [key, value] ] ||= get_wrapped_table key, value
   end
 
-  def method_missing sym, *args, &block
-    @index[sym] || super
+  def idx_keys(key)
+    @bare_index[key].keys
   end
 
   def sum(col)
@@ -198,7 +198,7 @@ class HashTable
   end
 
   def initialize(obj=nil,opts={})
-    @opts = opts
+    fix_opts(opts)
     create_header
     create_index
     @lines = []
@@ -230,6 +230,13 @@ class HashTable
     self.class.new lines, @opts.merge( :header => @header.clone, :types => @types.clone )
   end
 
+  def update_index key
+    create_index_for key
+    @lines.each do |line|
+      index_line_to_key line, key
+    end
+  end
+
   protected
   def add_line hash
     if hash.is_a? HashLine
@@ -238,7 +245,7 @@ class HashTable
     else
       @lines.push create_line(hash)
     end
-    add_index @lines.last
+    index_line @lines.last
   end
 
   def create_header
@@ -281,31 +288,44 @@ class HashTable
   def fix_lines
     @lines.each_index do |i|
       @lines[i] = create_line @lines[i]
-      add_index @lines[i]
+      index_line @lines[i]
     end
+  end
+
+  def fix_opts opts
+    @opts = opts
+    @opts[:idx] = [ @opts[:idx] ].flatten.compact
   end
 
   def create_index
-    idx = @opts[:idx]
-    if !idx
-      @index = {}
-      return
+    @bare_index = {}
+    @wrapped_index = {}
+    @opts[:idx].each do |key|
+      create_index_for key
     end
-    idx = [ idx ] if !idx.is_a? Array
-    @index = Hash[idx.map{|i| [ i, {} ] }]
   end
 
-  protected
+  def create_index_for key
+    @bare_index[key] ||= Hash.new do |h,k| h[k] = []; end
+  end
+
   def create_line s
     self.class.line_type.new s, self
   end
 
-  def add_index line
-    @index.each do |key,ind|
-      if val = line.send(key)
-        (ind[ val ] ||= []) << line
-      end
+  def index_line line
+    @bare_index.each do |key,table|
+      index_line_to_key line, key
     end
-    line
+  end
+
+  def index_line_to_key line, key
+    if line.respond_to?(key)
+      @bare_index[key][ line.send(key) ] << line
+    end
+  end
+
+  def get_wrapped_table key, value
+    wrap @bare_index[key][value] if @bare_index[key] && @bare_index[key][value]
   end
 end
