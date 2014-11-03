@@ -72,9 +72,6 @@ module GermDefault
 
   protected
   def default_create *args
-    args.each do |file|
-      raise "File not found: #{file}" unless File.exists?(file)
-    end
     new *args
   end
 
