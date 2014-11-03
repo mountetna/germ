@@ -31,7 +31,7 @@ class Fasta
 
   class Chrom
     include GenomicLocus
-    attr_reader :seqname, :size, :start, :total
+    attr_reader :seqname, :size, :start, :total, :centromere
     alias_method :pos, :start
     alias_method :stop, :size
     def initialize n, fasta, sz, st, t
@@ -44,6 +44,22 @@ class Fasta
     def file_pos pos
       return nil if !contains? pos
       @byte_start + pos/line_size*(line_size+1) + (pos % line_size) - 1 - ((pos % line_size == 0) ? 1 : 0)
+    end
+
+    def set_cen_pos pos
+      @centromere = pos
+    end
+
+    def p
+      if @centromere
+        @p ||= GenomicLocus::Region.new @seqname, 1, @centromere
+      end
+    end
+
+    def q
+      if @centromere
+        @q ||= GenomicLocus::Region.new @seqname, @centromere+1, stop
+      end
     end
 
     private
@@ -93,7 +109,7 @@ class Fasta
 
   public
   attr_reader :line_size, :chroms, :seq_names
-  def initialize file, size=nil
+  def initialize file, size=nil, cen_file=nil
     @io = File.open(file)
 
     @line_size = size || Fasta.guess_line_size(file)
@@ -103,6 +119,10 @@ class Fasta
     compute_chrom_stats
 
     shorten_seq_names
+
+    if cen_file
+      load_centromeres(cen_file)
+    end
   end
 
   def chrom name
@@ -145,5 +165,13 @@ class Fasta
     raise ArgumentError, "Improper interval #{seqname}:#{start}-#{stop}" if interval_missing?(GenomicLocus::Region.new(seqname,start,stop))
 
     get_seq_chunk(chrom(seqname).file_pos(start), chrom(seqname).file_pos(stop)).gsub(/\n/,'')
+  end
+
+  def load_centromeres file
+    File.foreach(file).each do |line|
+      seqname, cen_pos = line.split(/\t/)[0..1]
+      cen_pos = cen_pos.to_i
+      chrom(seqname).set_cen_pos(cen_pos)
+    end
   end
 end
