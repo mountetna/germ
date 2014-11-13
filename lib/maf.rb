@@ -4,7 +4,7 @@ require 'yaml'
 require 'mutation_set'
 
 class Maf < Mutation::Collection
-  header_on
+  print_header
   requires :hugo_symbol => :str, :entrez_gene_id => :str, :center => :str,
     :ncbi_build => :str, :chromosome => :str,
     :start_position => :int, :end_position => :int, :strand => :str,

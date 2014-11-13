@@ -3,7 +3,7 @@ require 'yaml'
 require 'mutation_set'
 
 class MuTect < Mutation::Collection
-  header_on
+  print_header
   requires :contig => :str, :position => :int, :context => :str, :ref_allele => :str, :alt_allele => :str,
     :tumor_name => :str, :normal_name => :str, :score => :float, :dbsnp_site => :str, :covered => :str, :power => :float,
     :tumor_power => :float, :normal_power => :float, :total_pairs => :int, :improper_pairs => :int,

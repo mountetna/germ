@@ -102,16 +102,13 @@ class HashTable
     end
 
     def use_header?
-      @use_header
+      @use_header ||= false
     end
-    def header_on
+    def print_header
       @use_header = true
     end
-    def header_off
-      @use_header = nil
-    end
   end
-  header_on
+  print_header
 
   attr_accessor :header, :types
   def [](ind)
