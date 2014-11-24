@@ -167,6 +167,10 @@ class Fasta
     get_seq_chunk(chrom(seqname).file_pos(start), chrom(seqname).file_pos(stop)).gsub(/\n/,'')
   end
 
+  def global_pos locus
+    chroms[locus.short_chrom].total - chroms[locus.short_chrom].size + locus.center
+  end
+
   def load_centromeres file
     File.foreach(file).each do |line|
       seqname, cen_pos = line.split(/\t/)[0..1]
