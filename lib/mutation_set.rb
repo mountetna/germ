@@ -97,76 +97,11 @@ class Mutation
 
   class Collection < HashTable
     attr_reader :mutation_config
-    class << self
-      attr_reader :required, :optional
-      def requires terms
-        @required = terms
-      end
-
-      def might_have terms
-        @optional = terms
-      end
-
-      def comments c
-        @comment = c
-      end
-    end
-
-    def clean_header s
-      s.to_s.gsub(/\s+/,"_").gsub(/[^\w]+/,"").downcase.to_sym
-    end
-
-    def clean_headers
-      @headers.map {|h| clean_header h}
-    end
-
-    def required
-      self.class.required.keys
-    end
 
     def initialize(obj=nil,opts={})
-      # get types from required
-      opts[:types] = types_from_required opts
       super obj, opts
-      @header = required unless @header
+      default_header unless @header
       @mutation_config = YAML.load_file(opts[:mutation_config]) if opts[:mutation_config]
-    end
-
-    protected
-    def types_from_required opts
-      types = self.class.required ? self.class.required.clone : {}
-      types = types.merge(self.class.optional.clone) if self.class.optional
-      types.merge(opts[:types] || {})
-    end
-
-    def enforce_header
-      create_sleeve
-      raise "File lacks required headers: #{missing_required.join(", ")}" unless missing_required.empty?
-    end
-
-    def create_sleeve
-      @sleeve = @header
-      @header = @header.map do |h|
-        clean_header h
-      end
-      raise "Headers are not unique: #{duplicate_headers.join(", ")}" unless duplicate_headers.empty?
-      @sleeve = Hash[@header.zip @sleeve]
-    end
-
-    def duplicate_headers
-      @header.inject(Hash.new(0)) do |count,h|
-        count[h] += 1
-        count
-      end.select do |h,count|
-        count > 1
-      end.keys
-    end
-
-    def missing_required
-      required - @header.map(&:downcase)
-    end
-
-    def post_read_hook
     end
   end
 end

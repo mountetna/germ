@@ -195,7 +195,6 @@ void add_hash_line(VALUE lines, VALUE header, VALUE types, VALUE ary) {
 
 VALUE method_load_file(VALUE self, VALUE file) {
 	VALUE cmmt = rb_iv_get(self,"@comment");
-	VALUE preamble = rb_iv_get(self,"@preamble");
 	char *comment = (cmmt == Qnil) ? 0 : RSTRING_PTR(cmmt);
 	int commentsize = (cmmt == Qnil) ? 0 : (RSTRING_LEN(cmmt));
 
@@ -204,8 +203,10 @@ VALUE method_load_file(VALUE self, VALUE file) {
 	char *contents = get_file_contents( fp, fp_size );
 
 	VALUE header = rb_iv_get(self,"@header");
+	VALUE preamble = rb_iv_get(header,"@preamble");
+	VALUE columns = rb_funcall(header,rb_intern("columns"),0);
 	VALUE skip_header = rb_iv_get(self,"@skip_header");
-	VALUE types = rb_iv_get(self,"@types");
+	VALUE types = rb_funcall(header,rb_intern("types"),0);
 
 
 	char *buf = ALLOC_N(char,fp_size);
@@ -234,13 +235,8 @@ VALUE method_load_file(VALUE self, VALUE file) {
 		// okay, now you can split your string into tokens and push it
 		// onto an array.
 		ary = get_token_array(buf,'\t');
-		if (header == Qnil) {
-			header = convert_to_symbols(ary);
-			rb_iv_set(self,"@header",header);
-			// enforce header quality
-			rb_funcall(self, rb_intern("enforce_header"),0);
-			// enforce_header might reset your header, so get it again
-			header = rb_iv_get(self,"@header");
+		if (columns == Qnil) {
+			columns = rb_funcall(header, rb_intern("set_columns"), 1, convert_to_symbols(ary));
 			foundheader = 1;
 			continue;
 		}
@@ -249,7 +245,7 @@ VALUE method_load_file(VALUE self, VALUE file) {
 			foundheader = 1;
 			continue;
 		}
-		add_hash_line( lines, header, types, ary );
+		add_hash_line( lines, columns, types, ary );
 	}
 	
 	rb_iv_set(self,"@lines",lines);

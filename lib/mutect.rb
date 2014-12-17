@@ -3,15 +3,18 @@ require 'yaml'
 require 'mutation_set'
 
 class MuTect < Mutation::Collection
-  print_header
-  requires :contig => :str, :position => :int, :context => :str, :ref_allele => :str, :alt_allele => :str,
-    :tumor_name => :str, :normal_name => :str, :score => :float, :dbsnp_site => :str, :covered => :str, :power => :float,
-    :tumor_power => :float, :normal_power => :float, :total_pairs => :int, :improper_pairs => :int,
-    :map_q0_reads => :int, :t_lod_fstar => :float, :tumor_f => :float, :contaminant_fraction => :float,
-    :contaminant_lod => :float, :t_ref_count => :int, :t_alt_count => :int, :t_ref_sum => :int, :t_alt_sum => :int,
-    :t_ref_max_mapq => :int, :t_alt_max_mapq => :int, :t_ins_count => :int, :t_del_count => :int,
-    :normal_best_gt => :str, :init_n_lod => :float, :n_ref_count => :int, :n_alt_count => :int, :n_ref_sum => :int,
-    :n_alt_sum => :int, :judgement => :str
+  class Header < HashTable::HashHeader
+    print_header
+    requires contig: :str, position: :int, context: :str, ref_allele: :str, alt_allele: :str,
+      tumor_name: :str, normal_name: :str, score: :float, dbsnp_site: :str, covered: :str, power: :float,
+      tumor_power: :float, normal_power: :float, total_pairs: :int, improper_pairs: :int,
+      map_q0_reads: :int, t_lod_fstar: :float, tumor_f: :float, contaminant_fraction: :float,
+      contaminant_lod: :float, t_ref_count: :int, t_alt_count: :int, t_ref_sum: :int, t_alt_sum: :int,
+      t_ref_max_mapq: :int, t_alt_max_mapq: :int, t_ins_count: :int, t_del_count: :int,
+      normal_best_gt: :str, init_n_lod: :float, n_ref_count: :int, n_alt_count: :int, n_ref_sum: :int,
+      n_alt_sum: :int, judgement: :str
+  end
+  header_class MuTect::Header
   comments "##"
 
   class Line < Mutation::Record

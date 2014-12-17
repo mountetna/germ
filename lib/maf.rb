@@ -4,30 +4,35 @@ require 'yaml'
 require 'mutation_set'
 
 class Maf < Mutation::Collection
-  print_header
-  requires :hugo_symbol => :str, :entrez_gene_id => :str, :center => :str,
-    :ncbi_build => :str, :chromosome => :str,
-    :start_position => :int, :end_position => :int, :strand => :str,
-    :variant_classification => :str, :variant_type => :str,
-    :reference_allele => :str, :tumor_seq_allele1 => :str, :tumor_seq_allele2 => :str,
-    :dbsnp_rs => :str, :dbsnp_val_status => :str,
-    :tumor_sample_barcode => :str, :matched_norm_sample_barcode => :str,
-    :match_norm_seq_allele1 => :str, :match_norm_seq_allele2 => :str,
-    :tumor_validation_allele1 => :str, :tumor_validation_allele2 => :str,
-    :match_norm_validation_allele1 => :str, :match_norm_validation_allele2 => :str,
-    :verification_status => :str, :validation_status => :str,
-    :mutation_status => :str, :sequencing_phase => :str, :sequence_source => :str,
-    :validation_method => :str, :score => :str
-  might_have :tumor_var_freq => :float, 
-    :tumor_ref_count => :int, :t_ref_count => :int, 
-    :normal_ref_count => :int, :n_ref_count => :int,
-    :tumor_alt_count => :int, :t_alt_count => :int, 
-    :normal_alt_count => :int, :n_alt_count => :int
-  comments "#"
+  class MafHeader < HashTable::HashHeader
+    print_header
+    use_sleeve
+    requires :Hugo_Symbol => :str, :Entrez_Gene_Id => :str, :Center => :str,
+      :NCBI_Build => :str, :Chromosome => :str,
+      :Start_Position => :int, :End_Position => :int, :Strand => :str,
+      :Variant_Classification => :str, :Variant_Type => :str,
+      :Reference_Allele => :str, :Tumor_Seq_Allele1 => :str, :Tumor_Seq_Allele2 => :str,
+      :dbSNP_RS => :str, :dbSNP_Val_Status => :str,
+      :Tumor_Sample_Barcode => :str, :Matched_Norm_Sample_Barcode => :str,
+      :Match_Norm_Seq_Allele1 => :str, :Match_Norm_Seq_Allele2 => :str,
+      :Tumor_Validation_Allele1 => :str, :Tumor_Validation_Allele2 => :str,
+      :Match_Norm_Validation_Allele1 => :str, :Match_Norm_Validation_Allele2 => :str,
+      :Verification_Status => :str, :Validation_Status => :str,
+      :Mutation_Status => :str, :Sequencing_Phase => :str, :Sequence_Source => :str,
+      :Validation_Method => :str, :Score => :str
 
-  def preamble
-    "#version 2.2"
+    might_have :tumor_var_freq => :float, 
+      :tumor_ref_count => :int, :t_ref_count => :int, 
+      :normal_ref_count => :int, :n_ref_count => :int,
+      :tumor_alt_count => :int, :t_alt_count => :int, 
+      :normal_alt_count => :int, :n_alt_count => :int
+
+    def preamble
+      "#version 2.2"
+    end
   end
+
+  comments "#"
 
   class Line < Mutation::Record
     alias_key :seqname, :chromosome
