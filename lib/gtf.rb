@@ -18,8 +18,9 @@ class GTF < HashTable
     end
   end
 
-  header_off
-
+  class Header < HashTable::HashHeader
+  end
+  header_class Header
   class Feature < HashTable::HashLine
     include GenomicLocus
     def copy

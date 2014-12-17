@@ -2,10 +2,13 @@ require 'mutation_set'
 require 'yaml'
 
 class VCF < Mutation::Collection
-  print_header
-  requires :chrom => :str, :pos => :int, :id => :str, :ref => :str, 
-    :alt => :str, :qual => :str, :filter => :str, :info => [ ";", "=" ]
-  might_have :format => :str
+  class VCFHeader < HashTable::HashHeader
+    print_header
+    requires :chrom => :str, :pos => :int, :id => :str, :ref => :str, 
+      :alt => :str, :qual => :str, :filter => :str, :info => [ ";", "=" ]
+    might_have :format => :str
+  end
+  header_class VCFHeader
   comments "##"
   attr_reader :samples
 

@@ -1,13 +1,13 @@
 class GTF < HashTable
   def gene name
-    intervals = idx(:gene_name,name)
+    intervals = index[:gene_name][name]
     @genes[name] ||= GTF::Gene.new intervals if intervals
   end
 
   def promoters
     @promoters ||= begin
       promoters = []
-      idx_keys(:gene_name).each do |name|
+      index[:gene_name].entries.each do |name|
         promoters.concat gene(name).transcripts.map(&:transcript_start)
       end
       wrap promoters
