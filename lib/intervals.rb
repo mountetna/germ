@@ -107,7 +107,7 @@ module IntervalList
     flat = []
     each do |interval|
       if current_span && current_span.overlaps?(interval)
-        current_span.stop = interval.stop
+        current_span.stop = interval.stop if current_span.stop < interval.stop
       else
         # you reached a new span
         if current_span

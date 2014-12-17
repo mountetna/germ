@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name = 'germ'
-  spec.version = '0.3'
+  spec.version = '0.3.2'
   spec.summary = 'Collection of utilities for use in computational genomics'
   spec.description = 'See summary'
   spec.email = 'Saurabh.Asthana@ucsf.edu'
