@@ -1,0 +1,5 @@
+species	name	age	beverage	rating
+dog	Rex	5	Kool-Aid	4.5
+cat	Chairman Miao	4	plain water	2.5
+mouse	Mighty Mouse	42	root beer	5
+dog	Sanford	13	vodka on the rocks	1.2
