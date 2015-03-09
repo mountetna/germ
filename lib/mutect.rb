@@ -14,7 +14,6 @@ class MuTect < Mutation::Collection
       normal_best_gt: :str, init_n_lod: :float, n_ref_count: :int, n_alt_count: :int, n_ref_sum: :int,
       n_alt_sum: :int, judgement: :str
   end
-  header_class MuTect::Header
   comments "##"
 
   class Line < Mutation::Record
@@ -47,5 +46,4 @@ class MuTect < Mutation::Collection
       @muts.push Mutation.new(seqname,pos,ref,alt,t_ref_count,t_alt_count)
     end
   end
-  line_class MuTect::Line
 end

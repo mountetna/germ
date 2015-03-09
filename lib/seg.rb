@@ -9,7 +9,6 @@ class SegFile < HashTable
     replace_columns
     print_header
   end
-  header_class SegHeader
   class SegIndex < HashTable::HashIndex
     always_index :sample
   end
@@ -25,5 +24,4 @@ class SegFile < HashTable
       self.class.new @hash.clone, @table
     end
   end
-  line_class Segment
 end

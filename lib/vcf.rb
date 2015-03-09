@@ -8,7 +8,6 @@ class VCF < Mutation::Collection
       :alt => :str, :qual => :str, :filter => :str, :info => [ ";", "=" ]
     might_have :format => :str
   end
-  header_class VCFHeader
   comments "##"
   attr_reader :samples
 
@@ -110,7 +109,6 @@ class VCF < Mutation::Collection
       @genotypes[s.to_sym] if @genotypes
     end
   end
-  line_class VCF::Line
 
   class Genotype
     def initialize(line,field)

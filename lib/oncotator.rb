@@ -4,6 +4,7 @@ require 'json'
 require 'sequel'
 require 'yaml'
 require 'germ/config'
+require 'hash_table'
 
 class Oncotator
   attr_accessor :mutation

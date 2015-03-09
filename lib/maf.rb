@@ -77,5 +77,4 @@ class Maf < Mutation::Collection
       end
     end
   end
-  line_class Maf::Line
 end

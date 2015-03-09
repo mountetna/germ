@@ -386,23 +386,32 @@ class HashTable
 
   class << self
     attr_reader :comment
-    def line_class klass=nil
-      @line_class = klass if klass
-      @line_class ||= HashLine
+    def line_class
+      @line_class ||= find_descendant_class HashLine
     end
 
-    def header_class klass=nil
-      @header_class = klass if klass
-      @header_class ||= HashHeader
+    def header_class
+      @header_class ||= find_descendant_class HashHeader
     end
 
-    def index_class klass=nil
-      @index_class = klass if klass
-      @index_class ||= HashIndex
+    def index_class
+      @index_class ||= find_descendant_class HashIndex
     end
 
     def comments c
       @comment = c
+    end
+
+    private
+    def find_descendant_class klass
+      custom_header = constants.find do |c|
+        const_get(c) < klass
+      end
+      if custom_header
+        const_get(custom_header)
+      else
+        klass
+      end
     end
   end
 

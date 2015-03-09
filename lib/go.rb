@@ -159,6 +159,5 @@ module GO
         g.db_object_symbol == gene
       end
     end
-    line_class AnnotationLine
   end
 end

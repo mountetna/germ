@@ -20,7 +20,6 @@ class GTF < HashTable
 
   class Header < HashTable::HashHeader
   end
-  header_class Header
   class Feature < HashTable::HashLine
     include GenomicLocus
     def copy
@@ -43,7 +42,6 @@ class GTF < HashTable
       end
     end
   end
-  line_class GTF::Feature
 
   def initialize file, opts=nil
     opts = { :comment => "#", :sep => " "}.merge(opts || {})
