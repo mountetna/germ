@@ -39,6 +39,14 @@ class HashTable
       @hash[ind] = v
     end
 
+    def to_a
+      @hash.values
+    end
+
+    def to_hash
+      @hash.clone
+    end
+
     def respond_to_missing? sym, include_all = false
       if @table.header.has_column?(sym)
         true
