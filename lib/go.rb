@@ -149,7 +149,7 @@ module GO
     def ontology
       @ontology ||= @opts[:ontology]
     end
-    class AnnotationLine < HashTable::HashLine
+    class AnnotationLine < HashTable::Row
       def term
         @table.ontology.term go_id
       end
