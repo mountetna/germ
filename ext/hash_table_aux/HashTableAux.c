@@ -134,6 +134,33 @@ void make_hash_entry( VALUE h, VALUE s, char sep )
 	xfree(p);
 }
 
+VALUE hash_entry( VALUE v, VALUE type )
+{
+	char *p = make_cstr(v);
+	char *t1 = make_cstr( rb_ary_entry( type, 0 ) );
+	char *t2 = make_cstr( rb_ary_entry( type, 1 ) );
+	int i;
+	VALUE h = rb_hash_new();
+	VALUE ary = get_token_array(p,t1[0]);
+	for (i=0;i< RARRAY_LEN(ary); i++) {
+		make_hash_entry( h, rb_ary_entry( ary, i ), t2[0] );
+	}
+	xfree(p);
+	xfree(t1);
+	xfree(t2);
+	return h;
+}
+
+VALUE array_entry(VALUE v, VALUE type)
+{
+	char *p = make_cstr(v);
+	char *t1 = make_cstr( rb_ary_entry( type, 0 ) );
+	VALUE ary = get_token_array(p,t1[0]);
+	xfree(p);
+	xfree(t1);
+	return ary;
+}
+
 VALUE convert_to_type( VALUE v, VALUE type )
 {
 	if (type == Qnil || v == Qnil) return v;
@@ -141,19 +168,10 @@ VALUE convert_to_type( VALUE v, VALUE type )
 	if (TYPE(type) == T_ARRAY) // it's a hash array
 	{
 		// tokenize the value based on the first and last characters
-		char *p = make_cstr(v);
-		char *t1 = make_cstr( rb_ary_entry( type, 0 ) );
-		char *t2 = make_cstr( rb_ary_entry( type, 1 ) );
-		int i;
-		VALUE h = rb_hash_new();
-		VALUE ary = get_token_array(p,t1[0]);
-		for (i=0;i< RARRAY_LEN(ary); i++) {
-			make_hash_entry( h, rb_ary_entry( ary, i ), t2[0] );
-		}
-		xfree(p);
-		xfree(t1);
-		xfree(t2);
-		return h;
+		if (RARRAY_LEN(type) == 2)
+			return hash_entry(v,type);
+		else
+			return array_entry(v,type);
 	}
 	else if (SYM2ID(type) == convert_types[TYPE_INT]) {
 		char *p = make_cstr(v);
@@ -202,18 +220,18 @@ VALUE method_load_file(VALUE self, VALUE file) {
 	long fp_size = get_file_size(fp);
 	char *contents = get_file_contents( fp, fp_size );
 
-	VALUE header = rb_iv_get(self,"@header");
-	VALUE preamble = rb_iv_get(header,"@preamble");
-	VALUE columns = rb_funcall(header,rb_intern("columns"),0);
-	VALUE skip_header = rb_iv_get(self,"@skip_header");
-	VALUE types = rb_funcall(header,rb_intern("types"),0);
-
-
+	VALUE preamble = rb_iv_get(self,"@preamble");
+	VALUE columns = rb_iv_get(self,"@columns");
+	VALUE no_header = rb_funcall(self, rb_intern("lacks_header?"), 0);
+	VALUE types = rb_iv_get(self,"@types");
+	
 	char *buf = ALLOC_N(char,fp_size);
 	int i = 0, foundheader = 0;
 	char *n;
 	VALUE ary;
 	VALUE lines = rb_ary_new();
+
+	if (RTEST( no_header )) foundheader = 1;
 
 	set_convert_types();
 	while (i < fp_size) {
@@ -235,13 +253,8 @@ VALUE method_load_file(VALUE self, VALUE file) {
 		// okay, now you can split your string into tokens and push it
 		// onto an array.
 		ary = get_token_array(buf,'\t');
-		if (columns == Qnil) {
-			columns = rb_funcall(header, rb_intern("set_columns"), 1, convert_to_symbols(ary));
-			foundheader = 1;
-			continue;
-		}
-		if (skip_header != Qnil && !foundheader) {
-			// it expects there to be a header to be ignored
+		if (!foundheader) {
+			columns = rb_funcall(self, rb_intern("set_parsed_columns"), 1, convert_to_symbols(ary));
 			foundheader = 1;
 			continue;
 		}
