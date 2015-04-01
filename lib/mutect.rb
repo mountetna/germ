@@ -1,28 +1,35 @@
-require 'oncotator'
-require 'yaml'
-require 'mutation_set'
+require 'hash_table'
+require 'genomic_locus'
 
-class MuTect < Mutation::Collection
-  class Header < HashTable::HashHeader
-    print_header
-    requires contig: :str, position: :int, context: :str, ref_allele: :str, alt_allele: :str,
-      tumor_name: :str, normal_name: :str, score: :float, dbsnp_site: :str, covered: :str, power: :float,
-      tumor_power: :float, normal_power: :float, total_pairs: :int, improper_pairs: :int,
-      map_q0_reads: :int, t_lod_fstar: :float, tumor_f: :float, contaminant_fraction: :float,
-      contaminant_lod: :float, t_ref_count: :int, t_alt_count: :int, t_ref_sum: :int, t_alt_sum: :int,
-      t_ref_max_mapq: :int, t_alt_max_mapq: :int, t_ins_count: :int, t_del_count: :int,
-      normal_best_gt: :str, init_n_lod: :float, n_ref_count: :int, n_alt_count: :int, n_ref_sum: :int,
-      n_alt_sum: :int, judgement: :str
-  end
-  comments "##"
+class MuTect < HashTable
+  print_columns
+  required :contig, :position, :context, :ref_allele, :alt_allele,
+    :tumor_name, :normal_name, :score, :dbsnp_site, :covered, :power,
+    :tumor_power, :normal_power, :total_pairs, :improper_pairs,
+    :map_q0_reads, :t_lod_fstar, :tumor_f, :contaminant_fraction,
+    :contaminant_lod, :t_ref_count, :t_alt_count, :t_ref_sum, :t_alt_sum,
+    :t_ref_max_mapq, :t_alt_max_mapq, :t_ins_count, :t_del_count,
+    :normal_best_gt, :init_n_lod, :n_ref_count, :n_alt_count, :n_ref_sum,
+    :n_alt_sum, :judgement
+  types position: :int, score: :float, power: :float, tumor_power: :float,
+    normal_power: :float, total_pairs: :int, improper_pairs: :int,
+    map_q0_reads: :int, t_lod_fstar: :float, tumor_f: :float,
+    contaminant_fraction: :float, contaminant_lod: :float, t_ref_count: :int,
+    t_alt_count: :int, t_ref_sum: :int, t_alt_sum: :int, t_ref_max_mapq: :int,
+    t_alt_max_mapq: :int, t_ins_count: :int, t_del_count: :int, init_n_lod: :float,
+    n_ref_count: :int, n_alt_count: :int, n_ref_sum: :int, n_alt_sum: :int
+  comment "##"
 
-  class Line < Mutation::Record
+  class Line < HashTable::Row
+    include GenomicLocus
     alias_key :seqname, :contig
     alias_key :pos, :position
     alias_key :start, :position
     alias_key :stop, :default_stop
     alias_key :ref, :ref_allele
     alias_key :alt, :alt_allele
+
+    def copy; default_copy; end
     def keep_somatic?
       !criteria_failed?(self, [ :mutect, :somatic ])
     end
@@ -40,10 +47,5 @@ class MuTect < Mutation::Collection
     def n_var_freq; n_alt_count.to_f / n_depth end
     def t_depth; t_alt_count.to_i + t_ref_count.to_i end
     def n_depth; n_alt_count.to_i + n_ref_count.to_i end
-
-    def initialize h, table
-      super h, table
-      @muts.push Mutation.new(seqname,pos,ref,alt,t_ref_count,t_alt_count)
-    end
   end
 end
