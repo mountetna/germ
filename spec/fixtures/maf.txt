@@ -1,0 +1,9 @@
+#version 2.3
+Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_Position	End_Position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2	dbSNP_RS	dbSNP_Val_Status	Tumor_Sample_Barcode	Matched_Norm_Sample_Barcode	Match_Norm_Seq_Allele1	Match_Norm_Seq_Allele2	Tumor_Validation_Allele1	Tumor_Validation_Allele2	Match_Norm_Validation_Allele1	Match_Norm_Validation_Allele2	Verification_Status	Validation_Status	Mutation_Status	Sequencing_Phase	Sequence_Source	Validation_Method	Score	BAM_file	Sequencer
+A1BG	1	broad.mit.edu	37	19	58858921	58858921	+	Silent	SNP	G	T	T			TCGA-05-4249-01A-01D-1105-08	TCGA-05-4249-10A-01D-1105-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A1BG	1	broad.mit.edu	37	19	58864777	58864777	+	Missense_Mutation	SNP	C	A	A			TCGA-44-6778-01A-11D-1855-08	TCGA-44-6778-10A-01D-1855-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A1BG	1	broad.mit.edu	37	19	58862863	58862863	+	Silent	SNP	C	A	A			TCGA-75-5126-01A-01D-1753-08	TCGA-75-5126-10A-01D-1753-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A1CF	29974	broad.mit.edu	37	10	52566492	52566492	+	Missense_Mutation	SNP	G	T	T			TCGA-05-4382-01A-01D-1265-08	TCGA-05-4382-10A-01D-1265-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A1CF	29974	broad.mit.edu	37	10	52580401	52580401	+	Missense_Mutation	SNP	C	G	G			TCGA-44-2656-01A-02W-0928-08	TCGA-44-2656-10A-01W-0928-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A2BP1	54715	broad.mit.edu	37	16	7703845	7703845	+	Silent	SNP	C	A	A			TCGA-05-4395-01A-01D-1265-08	TCGA-05-4395-10A-01D-1265-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx
+A2BP1	54715	broad.mit.edu	37	16	7568279	7568279	+	Missense_Mutation	SNP	C	A	A			TCGA-17-Z022-01A-01W-0746-08	TCGA-17-Z022-11A-01W-0746-08			NA	NA	NA	NA			Somatic	Phase_I	Capture	NA	NA	NA	Illumina GAIIx

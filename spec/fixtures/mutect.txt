@@ -1,0 +1,6 @@
+## muTector v1.0.47986
+contig	position	context	ref_allele	alt_allele	tumor_name	normal_name	score	dbsnp_site	covered	power	tumor_power	normal_power	total_pairs	improper_pairs	map_Q0_reads	t_lod_fstar	tumor_f	contaminant_fraction	contaminant_lod	t_ref_count	t_alt_count	t_ref_sum	t_alt_sum	t_ref_max_mapq	t_alt_max_mapq	t_ins_count	t_del_count	normal_best_gt	init_n_lod	n_ref_count	n_alt_count	n_ref_sum	n_alt_sum	judgement
+chr11	175241	ATAxTAA	C	A	H3122_AR1	H3122	0	DBSNP	UNCOVERED	0	0	0	2	0	0	7.053202	1	0.02	-0.017541	0	2	0	61	0	12	0	0	TT	-0.693147	0	0	0	0	REJECT
+chr11	175300	TAAxCCT	T	C	H3122_AR1	H3122	0	DBSNP	UNCOVERED	0	0	0	2	0	0	6.452165	1	0.02	-0.017534	0	2	0	55	0	12	0	0	TT	-0.693147	0	0	0	0	REJECT
+chr11	192155	GGGxCAT	C	T	H3122_AR1	H3122	0	DBSNP	UNCOVERED	0	0	0	2	0	0	4.077012	1	0.02	-0.008773	0	1	0	36	0	60	0	0	TT	-0.693147	0	0	0	0	REJECT
+chr11	193096	TGCxGGC	T	C	H3122_AR1	H3122	0	DBSNP	COVERED	0.818465	0.818465	1	133	6	0	43.133227	0.388889	0.02	-0.315734	22	14	741	469	60	60	0	0	CT	-55.031203	38	18	1321	633	REJECT

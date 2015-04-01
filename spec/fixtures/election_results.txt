@@ -1,0 +1,4 @@
+votes_a	votes_b	registered	precinct
+10	20	50	A
+17	11	52	B
+28	5	54	C

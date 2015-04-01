@@ -1,0 +1,4 @@
+name	breed	owner	created
+Snoopy	Beagle	Charlie Brown	1950
+Marmaduke	Great Dane	Phil Winslow	1954
+Clifford		Emily Elizabeth	1963
