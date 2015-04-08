@@ -1,15 +1,67 @@
-require 'mutation_set'
-require 'yaml'
+require 'hash_table'
+require 'genomic_locus'
 
-class VCF < Mutation::Collection
-  class VCFHeader < HashTable::HashHeader
-    print_header
-    requires :chrom => :str, :pos => :int, :id => :str, :ref => :str, 
-      :alt => :str, :qual => :str, :filter => :str, :info => [ ";", "=" ]
-    might_have :format => :str
+class VCF < HashTable
+  columns :chrom, :pos, :id, :ref, :alt, :qual, :filter, :info
+  required :chrom, :pos, :id, :ref, :alt, :qual, :filter, :info
+  display_names :chrom => :"#CHROM", :pos => :POS, :id => :ID, :ref => :REF,
+    :alt => :ALT, :qual => :QUAL, :filter => :FILTER, :info => :INFO
+  types :pos => :int, :info => [ ";", "=" ], :format => [ ":" ]
+  parse_mode :parsed
+  print_columns
+  comment "##"
+
+  def samples
+    @samples ||= get_samples
   end
-  comments "##"
-  attr_reader :samples
+
+  def variant_type
+    if ref.length == alt.length
+      if ref.size > 1
+        :ONP
+      else
+        :SNP
+      end
+    else
+      if ref.length < alt.length
+        :INS
+      else
+        :DEL
+      end
+    end
+  end
+
+  def add_sample *samps
+    samples.concat samps
+
+    add_sample_types samps
+
+    samps
+  end
+  alias_method :add_samples, :add_sample
+
+  protected
+  def get_samples
+    samples = columns.size > required.size ?  columns - required - [ :format ] : []
+
+    add_sample_types samples
+
+    samples
+  end
+
+  def set_parsed_columns columns
+    cols = super columns
+    
+    samples
+
+    cols
+  end
+
+  def add_sample_types samps
+    samps.each do |sample|
+      @types[sample] = [ ":" ]
+    end
+  end
 
   class Preamble
     def initialize lines
@@ -18,6 +70,7 @@ class VCF < Mutation::Collection
         add_key line.chomp
       end
     end
+
 
     protected
     def add_key line
@@ -41,46 +94,22 @@ class VCF < Mutation::Collection
     end
   end
 
-  def enforce_header
-    # kludge for empty vcf with no format line
-    super
-
-    if header.size > required.size
-      @samples = @header - required - [ :format ]
-      # recover the original sample name from the sleeve
-      new_samples = @samples.map do |s|
-        @sleeve[s].to_sym
-      end
-      @header = @header - @samples + new_samples
-      @samples = new_samples
-    end
-  end
-
-  class Line < Mutation::Record
+  class Line < HashTable::Row
+    include GenomicLocus
     alias_key :seqname, :chrom
     alias_key :start, :pos
     alias_key :stop, :default_stop
     def initialize(h, s)
       super h, s
 
-      self.format = self.format.split(/:/).map{|f| f.to_sym} if self.format
-
       build_genotypes
-      build_muts
     end
 
     def build_genotypes
       @genotypes = {}
-      if @table.samples
-        @table.samples.each do |s|
-          @genotypes[s] = VCF::Genotype.new self, self.send(s)
-        end
-      end
-    end
-
-    def build_muts
       @table.samples.each do |s|
-        @muts.push Mutation.new(chrom, pos, ref, alt, genotype(s).ref_count, genotype(s).alt_count)
+          @genotypes[s] = VCF::Genotype.new self, self.send(s)
+          @genotypes[@table.display_names[s]] = @genotypes[s]
       end
     end
 
@@ -106,14 +135,24 @@ class VCF < Mutation::Collection
     end
 
     def genotype(s)
-      @genotypes[s.to_sym] if @genotypes
+      @genotypes[s] if @genotypes
+    end
+
+    def format_symbols
+      self.format.map do |f|
+        f.downcase.to_sym
+      end
+    end
+
+    def format
+      @hash[:format]
     end
   end
 
   class Genotype
     def initialize(line,field)
       @line = line
-      @hash = Hash[line.format.map(&:downcase).zip(field.split /:/)]
+      @hash = Hash[line.format_symbols.zip(field)]
     end
 
     def method_missing sym, *args, &block
@@ -146,22 +185,8 @@ class VCF < Mutation::Collection
       gt !~ /\..\./
     end
 
-    def approx_depth; dp.to_i; end
-    def depth; alt_count + ref_count; end
-    def alt_count; @alt_count ||= respond_to?(:ad) ? ad.split(/,/)[1].to_i : nil; end
-    def ref_count; @ref_count ||= respond_to?(:ad) ? ad.split(/,/)[0].to_i : nil; end
-    def alt_freq; alt_count / depth.to_f; end
-    def ref_freq; ref_count / depth.to_f; end
-    def ref_length; @line.ref.length; end
-    def alt_length; @line.alt.length; end
-    def alt_base_quality; respond_to?(:nqsbq) ? nqsbq.split(/,/)[0].to_f : nil; end
-    def alt_map_quality; respond_to?(:mqs) ? mqs.split(/,/)[0].to_f : nil; end
-    def alt_mismatch_rate; respond_to?(:nqsmm) ? nqsmm.split(/,/)[0].to_f : nil; end
-    def alt_mismatch_count; respond_to?(:mm) ? mm.split(/,/)[0].to_f : nil; end
-    def quality; gq.to_i; end
-
     def to_s
-      @line.format.map(&:downcase).map{|f| @hash[f]}.join(":")
+      @line.format_symbols.map{|f| send f}.join(":")
     end
   end
 end
