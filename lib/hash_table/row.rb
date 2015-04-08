@@ -79,19 +79,26 @@ class HashTable
     def format_column column
       cell = send(column)
       if cell.is_a?(Hash) && @table.types[column].is_a?(Array)
-        cell.map do |key,value|
-          if value == true
-            # just print the key
-            key
-          else
-            "#{key}#{@table.types[column][1]}#{value}"
-          end
-        end.join @table.types[column][0]
+        join_hash(column,cell)
       elsif cell.is_a?(Array) && @table.types[column].is_a?(Array)
-        cell.join(@table.types[column][0])
+        join_array(column,cell)
       else
         cell
       end
+    end
+
+    def join_array(column, cell)
+      cell.join(@table.types[column][0])
+    end
+
+    def join_hash column, cell
+      cell.map do |key,value|
+        if value == true
+          key
+        else
+          "#{key}#{@table.types[column][1]}#{value}"
+        end
+      end.join @table.types[column][0]
     end
   end
 end

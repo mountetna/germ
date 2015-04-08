@@ -60,14 +60,12 @@ class HashTable
       output = {}
       hashes.each do |hash|
         output = output.merge(hash) do |key,oldval,newval|
-          if oldval.is_a?(Hash)
-            oldval.dup.merge(newval)
-          elsif newval.is_a?(Hash)
-            newval.dup
-          elsif oldval.is_a?(Array) || newval.is_a?(Array)
-            newval.dup
-          else
+          if newval.is_a?(Symbol) || newval == true
             newval
+          elsif oldval.is_a?(Hash) && newval.is_a?(Hash)
+            oldval.dup.merge(newval)
+          else
+            newval.dup
           end
         end
       end
@@ -188,7 +186,8 @@ class HashTable
   end
 
   def wrap lines
-    self.class.new @opts.merge( :columns => @columns.dup, :types => @types.dup )
+    wrapper = self.class.new @opts.merge( columns: @columns, types: @types )
+    wrapper.concat lines
   end
 
   def parse file
