@@ -15,22 +15,6 @@ class VCF < HashTable
     @samples ||= get_samples
   end
 
-  def variant_type
-    if ref.length == alt.length
-      if ref.size > 1
-        :ONP
-      else
-        :SNP
-      end
-    else
-      if ref.length < alt.length
-        :INS
-      else
-        :DEL
-      end
-    end
-  end
-
   def add_sample *samps
     samples.concat samps
 
@@ -136,6 +120,22 @@ class VCF < HashTable
 
     def genotype(s)
       @genotypes[s] if @genotypes
+    end
+
+    def variant_type
+      if ref.length == alt.length
+        if ref.size > 1
+          :ONP
+        else
+          :SNP
+        end
+      else
+        if ref.length < alt.length
+          :INS
+        else
+          :DEL
+        end
+      end
     end
 
     def format_symbols
