@@ -168,7 +168,7 @@ class Fasta
   end
 
   def global_pos locus
-    chroms[locus.short_chrom].total - chroms[locus.short_chrom].size + locus.center
+    chroms[locus.short_chrom].total - chroms[locus.short_chrom].size + locus.interval_center
   end
 
   def load_centromeres file

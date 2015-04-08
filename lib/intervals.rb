@@ -81,12 +81,12 @@ module IntervalList
       stop - start + 1
     end
 
-    def center
+    def interval_center
       (stop + start)/2.0
     end
 
     def dist interval
-      (center-interval.center).abs
+      (interval_center-interval.interval_center).abs
     end
   end
 end
