@@ -10,17 +10,17 @@ class GTF < HashTable
   extend GermDefault
   include IntervalList
 
-  def self.default_create file, idx=nil
-    if idx
-      new file, :idx => idx
-    else
-      new file
-    end
+  def self.default_create file, opts
+    new(opts).parse(file)
   end
 
-  class Header < HashTable::HashHeader
-  end
-  class Feature < HashTable::HashLine
+  columns :seqname, :source, :feature, :start, :stop, :score, :strand, :frame, :attribute
+  types start: :int, stop: :int, score: :int, frame: :int, attribute: [ ";", " " ]
+  print_columns false
+  parse_mode :noheader
+  comment "#"
+
+  class Feature < HashTable::Row
     include GenomicLocus
     def copy
       self.class.new @hash.clone, @table
@@ -43,17 +43,10 @@ class GTF < HashTable
     end
   end
 
-  def initialize file, opts=nil
-    opts = { :comment => "#", :sep => " "}.merge(opts || {})
-
-    @sep = opts[:sep]
+  def initialize opts = {}
+    super opts
 
     @genes = {}
-
-    super file, :comment => opts[:comment], :idx => opts[:idx],
-      :header => [ :seqname, :source, :feature, :start, :stop, :score, :strand, :frame, :attribute ],
-      :types => { :start => :int, :stop => :int, :score => :int, :frame =>
-                  :int, :attribute => [ ";", @sep ] }
   end
 
   def inspect
