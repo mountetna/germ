@@ -4,13 +4,13 @@ class Filter
   end
 
   def passes? obj
-    !fails? obj
+    @crit.all? do |rule,value|
+      criterion_ok?(obj, rule, value)
+    end
   end
 
   def fails? obj
-    @crit.any? do |rule,value|
-      !criterion_ok? obj, rule, value
-    end
+    !passes?(obj)
   end
 
   def criterion_ok? obj, rule, expected
