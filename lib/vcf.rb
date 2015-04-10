@@ -24,6 +24,12 @@ class VCF < HashTable
   end
   alias_method :add_samples, :add_sample
 
+  class << self
+    def genotype_class
+      @genotype_class ||= find_descendant_class VCF::Genotype
+    end
+  end
+
   protected
   def get_samples
     samples = columns.size > required.size ?  columns - required - [ :format ] : []
@@ -92,8 +98,8 @@ class VCF < HashTable
     def build_genotypes
       @genotypes = {}
       @table.samples.each do |s|
-          @genotypes[s] = VCF::Genotype.new self, self.send(s)
-          @genotypes[@table.display_names[s]] = @genotypes[s]
+        @genotypes[s] = @table.class.genotype_class.new self, self.send(s)
+        @genotypes[@table.display_names[s]] = @genotypes[s]
       end
     end
 
