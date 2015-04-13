@@ -4,17 +4,18 @@ require 'hash_table'
 describe Filter do
   describe "#passes?" do
     context "min_ filter" do
-      it "rejects if the value is below the filter" do
+      it "rejects if the value is below the criterion" do
         f = Filter.new min_created: 1954
-
         h = HashTable.new
         h.parse "fixtures/dogs.txt"
 
-        expect(h.count{|l| f.passes?(l)}).to be(2)
+        count = h.count{|l| f.passes? l}
+
+        expect(count).to be(2)
       end
     end
     context "max_ filter" do
-      it "rejects if the value is above the filter" do
+      it "rejects if the value is above the criterion" do
         f = Filter.new max_created: 1945
 
         h = HashTable.new

@@ -1,20 +1,21 @@
 require 'hash_table'
 
 describe HashTable do
-  describe ".new :column" do
+  describe ".new" do
     it "allows you to set columns" do
       h = HashTable.new :columns => [ :one, :two, :three ]
 
       expect(h.columns).to eq([ :one, :two, :three ])
     end
-  end
-  describe ".comment" do
-    it "allows you to set a comment character" do
-      h = HashTable.new :comment => "#"
-      h.parse "fixtures/commented.txt"
 
-      expect(h.count).to eq(2)
-      expect(h.columns).to eq([ :name, :breed, :owner, :created ])
+    context "when setting comment" do
+      it "ignores lines starting with a comment character" do
+        h = HashTable.new :comment => "#"
+        h.parse "fixtures/commented.txt"
+
+        expect(h.count).to eq(2)
+        expect(h.columns).to eq([ :name, :breed, :owner, :created ])
+      end
     end
   end
   describe ".columns" do
