@@ -33,14 +33,15 @@ char *get_file_contents(FILE *fp,long fp_size)
 	return contents;
 }
 
-VALUE get_token_array(char *buf, char sep) {
+VALUE get_token_array(char *buf, char *sep) {
 	char *token, *head;
 	VALUE ary = rb_ary_new();
+	int gap = strlen(sep);
 
 	head = buf;
-	while( *head && (token = strchr(head,sep) ) ) {
+	while( *head && (token = strstr(head,sep) ) ) {
 		rb_ary_push(ary, rb_str_new(head, token - head));
-		head = token + 1;
+		head = token + gap;
 	}
 	if (*head) {
 		rb_ary_push(ary, rb_str_new2(head));
@@ -141,7 +142,7 @@ VALUE hash_entry( VALUE v, VALUE type )
 	char *t2 = make_cstr( rb_ary_entry( type, 1 ) );
 	int i;
 	VALUE h = rb_hash_new();
-	VALUE ary = get_token_array(p,t1[0]);
+	VALUE ary = get_token_array(p,t1);
 	for (i=0;i< RARRAY_LEN(ary); i++) {
 		make_hash_entry( h, rb_ary_entry( ary, i ), t2[0] );
 	}
@@ -155,7 +156,7 @@ VALUE array_entry(VALUE v, VALUE type)
 {
 	char *p = make_cstr(v);
 	char *t1 = make_cstr( rb_ary_entry( type, 0 ) );
-	VALUE ary = get_token_array(p,t1[0]);
+	VALUE ary = get_token_array(p,t1);
 	xfree(p);
 	xfree(t1);
 	return ary;
@@ -252,7 +253,7 @@ VALUE method_load_file(VALUE self, VALUE file) {
 		}
 		// okay, now you can split your string into tokens and push it
 		// onto an array.
-		ary = get_token_array(buf,'\t');
+		ary = get_token_array(buf,"\t");
 		if (!foundheader) {
 			columns = rb_funcall(self, rb_intern("set_parsed_columns"), 1, convert_to_symbols(ary));
 			foundheader = 1;

@@ -41,6 +41,24 @@ class GTF < HashTable
         super
       end
     end
+
+    def join_hash column, cell
+      tag_sep, pair_sep = @table.types[column]
+
+      tag_sep = tag_sep + " " if column == :attribute
+
+      cell.map do |key,value|
+        format_tag key, value, pair_sep
+      end.join tag_sep
+    end
+
+    def format_tag key, value, sep
+      if value == true
+        key
+      else
+        %Q(#{key}#{sep}"#{value}")
+      end
+    end
   end
 
   def initialize opts = {}

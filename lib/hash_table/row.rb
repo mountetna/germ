@@ -92,13 +92,18 @@ class HashTable
     end
 
     def join_hash column, cell
+      tag_sep, pair_sep = @table.types[column]
       cell.map do |key,value|
-        if value == true
-          key
-        else
-          "#{key}#{@table.types[column][1]}#{value}"
-        end
-      end.join @table.types[column][0]
+        format_tag key, value, pair_sep
+      end.join tag_sep
+    end
+
+    def format_tag key, value, sep
+      if value == true
+        key
+      else
+        "#{key}#{sep}#{value}"
+      end
     end
   end
 end
