@@ -1,13 +1,17 @@
+require 'hash_table'
+require 'extlib'
+
 class PicardMetrics
+  attr_reader :sections
   def initialize
-    @sections = []
+    @sections = {}
   end
 
   def parse file
     File.open(file) do |f|
       until f.eof? do
         section = read_section(f)
-        @sections.push section if section
+        @sections[section.name] = section if section
       end
     end
   end
@@ -17,19 +21,57 @@ class PicardMetrics
     return nil unless header
     section = PicardMetrics.const_get(header.section_type).new
     section.parse f
+    section
   end
 
-  class StringHeader
+  class Metric
+    def name
+      self.class.name.split(/::/).last.snake_case.to_sym
+    end
+  end
+
+  class Noop < Metric
+    def parse f
+    end
+  end
+
+  class StringHeader < Metric
     attr_reader :string
     def parse f
       @string = f.gets.chomp.sub(/^# /,'')
     end
   end
 
-  class RnaSeqMetrics < HashTable
+  class Histogram < Metric
+    attr_reader :values
     def parse f
+      header = f.gets
+      @values = []
+      while (line = f.gets) && line.chomp.size > 0
+        pos, cov = line.chomp.split(/\t/)
+        @values.push [ pos.to_i, cov.to_f ]
+      end
+    end
+  end
 
-      
+  class RnaSeqMetrics < Metric
+    attr_reader :metrics
+    def parse f
+      keys = f.gets.chomp.split(/\t/).map(&:downcase).map(&:to_sym)
+      values = f.gets.chomp.split(/\t/).map &:to_f
+      @metrics = Hash[keys.zip values]
+    end
+
+    def respond_to_missing? sym, flag = true
+      return true if @metrics.has_key? sym
+    end
+
+    def method_missing sym, *args, &block
+      if @metrics.has_key? sym
+        @metrics[sym]
+      else
+        super
+      end
     end
   end
 
@@ -39,7 +81,6 @@ class PicardMetrics
     return nil unless line
     line.chomp!
     return nil unless line.size > 0
-    puts line
     Header.new line.match(HEADER_PATTERN)[:string]
   end
 
@@ -53,7 +94,7 @@ class PicardMetrics
       case @type
       when "net.sf.picard.metrics.StringHeader"
         :StringHeader
-      when "METRICS_CLASS"
+      when "METRICS CLASS"
         @subtype.split(/\./).last.to_sym
       when "HISTOGRAM"
         :Histogram
