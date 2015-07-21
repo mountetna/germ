@@ -11,15 +11,53 @@ class Sam
       attr_reader :comment
       attr_reader :line
 
+      TAG_FORMAT = %r{
+            \t
+            (?<tag>[A-Za-z][A-Za-z0-9])
+            :
+            (?<val>[ -~]+)
+          }x
+      LINE_FORMAT = %r{
+        ^@
+        (?<type>
+          [A-Za-z][A-Za-z]
+        )
+        (?<tags>
+          (?:
+           #{TAG_FORMAT.to_s}
+          )+
+        )
+      }x
+
       def initialize line
         @line = line
         if line =~ /^@CO\t(.*)/
           @type = :CO
           @comment = $1
         end
-        line.match /^@([A-Za-z][A-Za-z])\t((?:[A-Za-z][A-Za-z0-9]:[ -~]+(?:\t|$))+)/ do |m|
-          @type = m[1].to_sym
-          @tags = Hash[m[2].split(/\t/).map{|s| s.split(/:/)}]
+        line.match LINE_FORMAT do |m|
+          @type = m[:type].to_sym
+          @tags = scan_matches(m[:tags],TAG_FORMAT).map do |m|
+            { m[:tag].to_sym => m[:val] }
+          end.reduce :merge
+        end
+      end
+
+      def scan_matches string, re
+        pos = 0
+        matches = []
+        while m = string.match(re,pos)
+          matches << m
+          pos = m.end(0)
+        end
+        matches
+      end
+
+      def method_missing sym, *args, &block
+        if @tags.has_key? sym.upcase
+          @tags[sym.upcase]
+        else
+          super
         end
       end
 
@@ -41,10 +79,36 @@ class Sam
       end
     end
 
+    def comments
+      @comments ||= find_records :CO
+    end
+    
+    def headers
+      @headers ||= find_records :HD
+    end
+
+    def sequences
+      @sequences ||= find_records :SQ
+    end
+
+    def programs
+      @programs ||= find_records :PG
+    end
+
+    def read_groups
+      @read_groups ||= find_records :RG
+    end
+
+    def find_records type
+      @records.select {|r| r.type == type }
+    end
+
     def output f
-      @records.each do |r|
-        f.puts r
-      end
+      f.puts headers
+      f.puts sequences
+      f.puts programs
+      f.puts read_groups
+      f.puts comments
     end
   end
 
@@ -169,18 +233,17 @@ class Sam
     end
   end
 
-  def self.read file
-    sam = self.new
+  def parse_sam file
     header = []
     File.foreach(file) do |l|
       if l =~ /^@/
         header.push l
         next
       end
-      sam.reads.push Sam::Read.new(sam, l.chomp.split(/\t/,12))
+      reads.push Sam::Read.new(self, l.chomp.split(/\t/,12))
     end
-    sam.header = Sam::Header.new(sam, header)
-    sam
+    @header = Sam::Header.new(self, header)
+    self
   end
 
   def output f
