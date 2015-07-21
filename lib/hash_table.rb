@@ -60,7 +60,7 @@ class HashTable
       output = {}
       hashes.each do |hash|
         output = output.merge(hash) do |key,oldval,newval|
-          if newval.is_a?(Symbol) || newval == true
+          if newval.is_a?(Symbol) || newval == true || newval == false || newval == nil
             newval
           elsif oldval.is_a?(Hash) && newval.is_a?(Hash)
             oldval.dup.merge(newval)
