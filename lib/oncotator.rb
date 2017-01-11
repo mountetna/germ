@@ -144,7 +144,7 @@ class Oncotator
   end
 end
 class Mutation
-  class Record < HashTable::HashLine
+  class Record < HashTable::Row
     def skip_oncotator? criteria=nil
       return true if !mut.onco || mut.onco.empty? || criteria_failed?(mut.onco, criteria || :oncotator)
     end

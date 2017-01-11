@@ -92,32 +92,6 @@ class GTF < HashTable
       @transcript = @intervals.find{|t| t.feature == "transcript"}
     end
 
-    def site pos
-      i = @transcript.clone do |c|
-        c.start = c.stop = pos
-      end
-      intron = nil
-      overlaps = @intervals.select{|f| f.contains? i }
-      return cds_pos i if overlaps.find{|f| f.feature == "cds" }
-      return intron_pos intron if intron = overlaps.find{|f| f.feature == "intron" }
-      return utr_pos if overlaps.find{|f| f.feature =~ /UTR/ }
-      { :type => :transcript }
-    end
-
-    
-    def utr_pos
-      { :type => :utr }
-    end
-
-    def intron_frame intron
-      # find the terminal frame of the leading exon
-      if strand == "+"
-        (intron.prev_exon.frame + intron.prev_exon.size)%3
-      else
-        intron.post_exon.frame
-      end
-    end
-
     def canonical_transcript_score
       (is_ccds? ? 100000 : 0) + cds_size
     end
@@ -133,30 +107,53 @@ class GTF < HashTable
     end
 
     def cds_seq
-      @cds_seq ||= get_cds_seq
+      @cds_seq ||= begin
+        seq = cds.map(&:seq).join ''
+        strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
+      end
     end
 
     def cds_pos
-      @cds_pos ||= get_cds_pos
-    end
+      @cds_pos ||=
+        begin
+          pos = cds.map do |c|
+            c.size.times.map do |i|
+              GenomicLocus::Position.new c.seqname, i + c.start
+            end
+          end.flatten
 
-    private
-    def get_cds_pos
-      pos = cds.map do |c|
-        c.size.times.map do |i|
-          GenomicLocus::Position.new c.seqname, i + c.start
+          strand == "+" ? pos : pos.reverse
         end
-      end.flatten
-
-      strand == "+" ? pos : pos.reverse
     end
 
-    def get_cds_seq
-      seq = cds.map(&:seq).join ''
-      strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
+    def exon_seq
+      @exon_seq ||= begin
+        seq = exons.map(&:seq).join ''
+        strand == "+" ?  seq : seq.reverse.tr('ATGC','TACG')
+      end
     end
 
-    public
+    def exon_pos
+      @exon_pos ||= 
+        begin
+          pos = exons.map do |c|
+            c.size.times.map do |i|
+              GenomicLocus::Position.new c.seqname, i + c.start
+            end
+          end.flatten
+
+          strand == "+" ? pos : pos.reverse
+        end
+    end
+
+    def translation_start_pos
+      @translation_start_pos ||= GenomicLocus::Position.new @transcript.seqname, (strand == "+" ?  cds.first.start : cds.last.stop)
+    end
+
+    def translation_stop_pos
+      @translation_stop_pos ||= GenomicLocus::Position.new @transcript.seqname, (strand == "+" ? cds.last.stop : cds.first.start)
+    end
+
     def protein_seq
       trinucs.map do |t|
         t.codon.aa.letter
@@ -206,10 +203,6 @@ class GTF < HashTable
         range = 3 * i .. 3*i + 2
         TriNuc.new cds_seq[range], cds_pos[range], strand, i
       end
-    end
-
-    def intron_pos intron
-      { :type => :intron, :pos => cds_pos(intron.start-1), :frame => intron_frame(intron) }
     end
 
     def utr3

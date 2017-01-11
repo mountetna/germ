@@ -129,6 +129,10 @@ class HashTable
     end
   end
 
+  def last
+    @lines.last
+  end
+
   [ :select, :reject, :sort, :sort_by ].each do |meth|
     define_method(meth) do |&block|
       wrap @lines.send(meth, &block)

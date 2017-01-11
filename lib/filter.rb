@@ -45,12 +45,14 @@ class Filter
       else
         return v =~ /#{expected}/
       end
-    when /^either.*/
-      v = nil
-      expected.each do |rule,val|
-        v = true if criterion_ok? obj, rule, val
+    when /^all.*/
+      return expected.all? do |rule,val|
+        criterion_ok? obj, rule, val
       end
-      return v
+    when /^either.*/
+      return expected.any? do |rule,val|
+        criterion_ok? obj, rule, val
+      end
     else
       # send it
       case expected

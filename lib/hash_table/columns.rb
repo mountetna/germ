@@ -78,7 +78,7 @@ class HashTable
 
     def clean_column_name name
       name.to_s
-        .gsub(/\s+/,"_")
+        .gsub(/(\.|\s+)/,"_")
         .gsub(/[^\w]+/,"")
         .downcase
         .to_sym
