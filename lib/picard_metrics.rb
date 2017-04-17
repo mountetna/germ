@@ -14,6 +14,8 @@ class PicardMetrics
         @sections[section.name] = section if section
       end
     end
+
+    self
   end
 
   def read_section f
