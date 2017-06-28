@@ -7,7 +7,7 @@ describe Filter do
       it "rejects if the value is below the criterion" do
         f = Filter.new min_created: 1954
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         count = h.count{|l| f.passes? l}
 
@@ -19,7 +19,7 @@ describe Filter do
         f = Filter.new max_created: 1945
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(0)
       end
@@ -29,7 +29,7 @@ describe Filter do
         f = Filter.new exclude_name: "Snoopy"
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(2)
       end
@@ -37,7 +37,7 @@ describe Filter do
         f = Filter.new exclude_name: [ "Snoopy", "Marmaduke" ]
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(1)
       end
@@ -47,7 +47,7 @@ describe Filter do
         f = Filter.new has_name: "Snoopy"
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(1)
       end
@@ -55,7 +55,7 @@ describe Filter do
         f = Filter.new has_name: [ "Snoopy", "Marmaduke" ]
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(2)
       end
@@ -63,7 +63,7 @@ describe Filter do
         f = Filter.new has_breed: true
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(2)
       end
@@ -71,7 +71,7 @@ describe Filter do
         f = Filter.new has_breed: false
 
         h = HashTable.new
-        h.parse "fixtures/dogs.txt"
+        h.parse fixture(:dogs)
 
         expect(h.count{|l| f.passes?(l)}).to be(1)
       end

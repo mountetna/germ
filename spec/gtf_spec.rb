@@ -5,7 +5,7 @@ describe GTF do
     context "loaded from file" do
       it "parses correctly" do
         m = GTF.new
-        m.parse "fixtures/gtf.txt"
+        m.parse fixture(:gtf)
 
         expect(m.count).to eq(15)
       end

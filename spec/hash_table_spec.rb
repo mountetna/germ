@@ -11,7 +11,7 @@ describe HashTable do
     context "when setting comment" do
       it "ignores lines starting with a comment character" do
         h = HashTable.new :comment => "#"
-        h.parse "fixtures/commented.txt"
+        h.parse fixture(:commented)
 
         expect(h.count).to eq(2)
         expect(h.columns).to eq([ :name, :breed, :owner, :created ])
@@ -40,7 +40,7 @@ describe HashTable do
       end
       it "uses the original columns as given" do
         h = DirtyTable.new
-        h.parse "fixtures/test_dirty_names.txt"
+        h.parse fixture(:test_dirty_names)
 
         expect(h.display_names.values).to eq([])
       end
@@ -52,7 +52,7 @@ describe HashTable do
       end
       it "uses the columns from the given file" do
         h = DirtyTable2.new
-        h.parse "fixtures/test_dirty_names.txt"
+        h.parse fixture(:test_dirty_names)
 
         expect(h.count).to eq 3
         expect(h.display_names.values).to eq([ :Name, :Breed, :Owner, :Created ])
@@ -65,7 +65,7 @@ describe HashTable do
       end
       it "uses the original columns and does not look for a header in the file" do
         h = DirtyTable3.new
-        h.parse "fixtures/test_noheader.txt"
+        h.parse fixture(:test_noheader)
 
         expect(h.count).to eq 3
       end
@@ -92,7 +92,7 @@ describe HashTable do
     end
     it "converts columns when parsed" do
       e = ElectionResult.new
-      e.parse "fixtures/election_results.txt"
+      e.parse fixture(:election_results)
 
       expect(e.all?{|l| l.votes_a.is_a? Integer}).to eq(true)
     end
@@ -109,7 +109,7 @@ describe HashTable do
       r = ReqTable.new
 
       expect do
-        r.parse("fixtures/dogs.txt")
+        r.parse(fixture(:dogs))
       end.to raise_error
     end
   end
@@ -128,26 +128,26 @@ describe HashTable do
   describe "#columns" do
     it "picks up column names from file" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
 
       expect(h.columns).to eq([ :name, :breed, :owner, :created ])
     end
     it "cleans column names from file" do
       h = HashTable.new
-      h.parse "fixtures/test_dirty_names.txt"
+      h.parse fixture(:test_dirty_names)
 
       expect(h.columns).to eq([ :name, :breed, :owner, :created ])
     end
     it "uses specified columns when parsing" do
       h = HashTable.new :columns => [ :name, :breed, :owner, :created ], :parse_mode => :noheader
-      h.parse "fixtures/test_noheader.txt"
+      h.parse fixture(:test_noheader)
 
       expect(h.columns).to eq([ :name, :breed, :owner, :created ])
       expect(h.count).to eq 3
     end
     it "lets you add a column" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
       h.has_column? :spool
 
       h.add_column :spool
@@ -157,7 +157,7 @@ describe HashTable do
   describe "#parse" do
     it "loads from a file" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
 
       expect(h.count).to eq 3
     end
@@ -165,8 +165,8 @@ describe HashTable do
   describe "#output" do
     it "prints the contents" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
-      text = File.read("fixtures/dogs.txt")
+      h.parse fixture(:dogs)
+      text = File.read(fixture(:dogs))
 
       io = StringIO.new
       h.output io
@@ -177,7 +177,7 @@ describe HashTable do
   describe "<<" do
     it "adds a new line from a hash" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
 
       h << { name: "Beethoven", breed: "St. Bernard", owner: "Charles Grodin", created: 1992 }
       expect(h.count).to eq(4)
@@ -189,19 +189,19 @@ describe HashTable::Row do
   describe "#<column_name>" do
     it "allows access to named columns" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
       r = h.first
       expect(r.respond_to? :name).to be(true)
     end
     it "forbids access to unnamed columns" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
       r = h.first
       expect(r.respond_to? :strip).to be(false)
     end
     it "allows access to newly added columns" do
       h = HashTable.new
-      h.parse "fixtures/dogs.txt"
+      h.parse fixture(:dogs)
       r = h.first
       h.columns << :strip
       expect(r.respond_to? :strip).to be(true)
@@ -215,7 +215,7 @@ describe HashTable::Row do
         end
       end
       d = DogTable.new
-      d.parse "fixtures/dogs.txt"
+      d.parse fixture(:dogs)
 
       r = d.first
       expect(r.respond_to? :species).to be(true)
